@@ -82,4 +82,55 @@ public class PermissionDefinitionCatalogTests
                 "Orders.View");
         }
     }
+
+    [Fact]
+    public void TryGetPermission_ShouldReturnPermission_WhenPermissionExists()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var catalog =
+            serviceProvider.GetRequiredService<
+                PermissionDefinitionCatalog>();
+
+        var found =
+            catalog.TryGetPermission(
+                "Products.View",
+                out var permission);
+
+        Assert.True(found);
+        Assert.NotNull(permission);
+        Assert.Equal(
+            "Products.View",
+            permission.Name);
+    }
+
+    [Fact]
+    public void TryGetPermission_ShouldReturnFalse_WhenPermissionDoesNotExist()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var catalog =
+            serviceProvider.GetRequiredService<
+                PermissionDefinitionCatalog>();
+
+        var found =
+            catalog.TryGetPermission(
+                "Products.Delete",
+                out var permission);
+
+        Assert.False(found);
+        Assert.Null(permission);
+    }
 }

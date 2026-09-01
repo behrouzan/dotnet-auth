@@ -24,6 +24,10 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton<PermissionDefinitionManager>();
+       
+        services.TryAddScoped(
+            typeof(IPermissionChecker<>),
+            typeof(PermissionChecker<>));
 
         services.TryAddSingleton<PermissionDefinitionCatalog>(
             serviceProvider =>
