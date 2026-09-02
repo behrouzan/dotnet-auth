@@ -132,6 +132,22 @@ public sealed class ServiceCollectionExtensionsTests
         {
             return Task.FromResult(false);
         }
+
+        public Task<bool> IsAnyGrantedAsync(
+    Guid userId,
+    IEnumerable<string> permissionNames,
+    CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<bool> AreAllGrantedAsync(
+            Guid userId,
+            IEnumerable<string> permissionNames,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     private sealed class CustomUserIdResolver

@@ -69,6 +69,7 @@ public sealed class PermissionCheckerTests
 
             products.AddPermission("Products.View");
             products.AddPermission("Products.Create");
+            products.AddPermission("Products.Edit");
         }
     }
 
@@ -127,5 +128,362 @@ public sealed class PermissionCheckerTests
 
         Assert.False(result);
         Assert.Equal(0, store.CallCount);
+    }
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldReturnTrue_WhenOnePermissionIsGranted()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.Edit"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "Products.Edit"]);
+
+        Assert.True(result);
+        Assert.Equal(1, store.CallCount);
+    }
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldReturnFalse_WhenNoneAreGranted()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.Create"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "Products.Edit"]);
+
+        Assert.False(result);
+        Assert.Equal(1, store.CallCount);
+    }
+
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldReturnTrue_WhenDefinedGrantedPermissionExistsAlongsideUndefinedPermission()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.Edit"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                ["Unknown.Permission", "Products.Edit"]);
+
+        Assert.True(result);
+        Assert.Equal(1, store.CallCount);
+    }
+
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldNotQueryStore_WhenAllPermissionsAreUndefined()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.View"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                ["Unknown.One", "Unknown.Two"]);
+
+        Assert.False(result);
+        Assert.Equal(0, store.CallCount);
+    }
+
+    [Fact]
+    public async Task AreAllGrantedAsync_ShouldReturnTrue_WhenAllPermissionsAreGranted()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.View", "Products.Edit"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.AreAllGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "Products.Edit"]);
+
+        Assert.True(result);
+        Assert.Equal(1, store.CallCount);
+    }
+
+    [Fact]
+    public async Task AreAllGrantedAsync_ShouldReturnFalse_WhenOnePermissionIsNotGranted()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.View"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.AreAllGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "Products.Edit"]);
+
+        Assert.False(result);
+        Assert.Equal(1, store.CallCount);
+    }
+    [Fact]
+    public async Task AreAllGrantedAsync_ShouldNotQueryStore_WhenPermissionIsUndefined()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.View", "Products.Edit"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.AreAllGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "Unknown.Permission"]);
+
+        Assert.False(result);
+        Assert.Equal(0, store.CallCount);
+    }
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldThrow_WhenPermissionNamesIsEmpty()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        services.AddSingleton<IPermissionGrantStore<Guid>>(
+            new FakePermissionGrantStore([]));
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                []));
+    }
+    [Fact]
+    public async Task AreAllGrantedAsync_ShouldThrow_WhenPermissionNamesIsEmpty()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        services.AddSingleton<IPermissionGrantStore<Guid>>(
+            new FakePermissionGrantStore([]));
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => checker.AreAllGrantedAsync(
+                Guid.NewGuid(),
+                []));
+    }
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldThrow_WhenPermissionNameIsWhitespace()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        services.AddSingleton<IPermissionGrantStore<Guid>>(
+            new FakePermissionGrantStore([]));
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                ["Products.View", "   "]));
+    }
+
+    [Fact]
+    public async Task AreAllGrantedAsync_ShouldHandleDuplicatePermissions()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        var store =
+            new FakePermissionGrantStore(
+                ["Products.View"]);
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(store);
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        var result =
+            await checker.AreAllGrantedAsync(
+                Guid.NewGuid(),
+                [
+                    "Products.View",
+                "Products.View"
+                ]);
+
+        Assert.True(result);
+        Assert.Equal(1, store.CallCount);
+    }
+
+    [Fact]
+    public async Task IsAnyGrantedAsync_ShouldThrow_WhenPermissionNamesIsNull()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanAuth();
+        services.AddPermissionDefinition<ProductPermissionProvider>();
+
+        services.AddSingleton<
+            IPermissionGrantStore<Guid>>(
+                new FakePermissionGrantStore([]));
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var checker =
+            serviceProvider.GetRequiredService<
+                IPermissionChecker<Guid>>();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => checker.IsAnyGrantedAsync(
+                Guid.NewGuid(),
+                null!));
     }
 }

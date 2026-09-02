@@ -12,13 +12,7 @@ public sealed class PermissionDefinitionCatalog
     string,
     PermissionDefinition> _permissions;
 
-    /// <summary>
-    /// Initializes a new permission definition catalog.
-    /// </summary>
-    /// <param name="groups">
-    /// The permission groups included in the catalog.
-    /// </param>
-    public PermissionDefinitionCatalog(
+    internal PermissionDefinitionCatalog(
         IReadOnlyList<PermissionGroupDefinition> groups)
     {
         ArgumentNullException.ThrowIfNull(groups);

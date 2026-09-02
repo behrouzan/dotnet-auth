@@ -34,13 +34,28 @@ internal sealed class PermissionAuthorizationHandler<TKey>
         }
 
         var isGranted =
-            await _permissionChecker.IsGrantedAsync(
-                userId,
-                requirement.PermissionName);
+            requirement.Mode switch
+            {
+                PermissionRequirementMode.Single =>
+                    await _permissionChecker.IsGrantedAsync(
+                        userId,
+                        requirement.PermissionName),
+
+                PermissionRequirementMode.Any =>
+                    await _permissionChecker.IsAnyGrantedAsync(
+                        userId,
+                        requirement.PermissionNames),
+
+                PermissionRequirementMode.All =>
+                    await _permissionChecker.AreAllGrantedAsync(
+                        userId,
+                        requirement.PermissionNames),
+
+                _ =>
+                    false
+            };
 
         if (isGranted)
-        {
             context.Succeed(requirement);
-        }
     }
 }

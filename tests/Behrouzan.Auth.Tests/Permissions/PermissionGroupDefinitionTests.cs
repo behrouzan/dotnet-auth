@@ -9,7 +9,7 @@ public class PermissionGroupDefinitionTests
     {
         var group = new PermissionGroupDefinition(
             "Products",
-            "Products");
+            "Products", null);
 
         Assert.Equal("Products", group.Name);
         Assert.Equal("Products", group.DisplayName);
@@ -20,7 +20,7 @@ public class PermissionGroupDefinitionTests
     public void AddPermission_ShouldAddPermissionToGroup()
     {
         var group =
-            new PermissionGroupDefinition("Products");
+            new PermissionGroupDefinition("Products", null, null);
 
         var permission =
             group.AddPermission(
@@ -44,14 +44,14 @@ public class PermissionGroupDefinitionTests
         string name)
     {
         Assert.Throws<ArgumentException>(
-            () => new PermissionGroupDefinition(name));
+            () => new PermissionGroupDefinition(name, null, null));
     }
 
     [Fact]
     public void AddPermission_ShouldThrow_WhenPermissionAlreadyExists()
     {
         var group =
-            new PermissionGroupDefinition("Products");
+            new PermissionGroupDefinition("Products", null, null);
 
         group.AddPermission("Products.Create");
 

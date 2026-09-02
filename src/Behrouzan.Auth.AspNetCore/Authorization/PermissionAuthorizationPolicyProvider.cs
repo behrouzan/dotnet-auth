@@ -33,30 +33,55 @@ internal sealed class PermissionAuthorizationPolicyProvider
             .GetFallbackPolicyAsync();
     }
 
-    public Task<AuthorizationPolicy?>
-        GetPolicyAsync(
-            string policyName)
+    public Task<AuthorizationPolicy?> GetPolicyAsync(
+        string policyName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             policyName);
 
-        if (!PermissionPolicyName.TryParse(
+        if (PermissionPolicyName.TryParse(
                 policyName,
                 out var permissionName))
         {
-            return _fallbackPolicyProvider
-                .GetPolicyAsync(policyName);
+            return Task.FromResult<AuthorizationPolicy?>(
+                CreatePolicy(
+                    new PermissionRequirement(
+                        permissionName)));
         }
 
-        var policy =
-    new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .AddRequirements(
-            new PermissionRequirement(permissionName))
-        .Build();
+        if (PermissionPolicyName.TryParseAny(
+                policyName,
+                out var anyPermissions))
+        {
+            return Task.FromResult<AuthorizationPolicy?>(
+                CreatePolicy(
+                    new PermissionRequirement(
+                        anyPermissions,
+                        PermissionRequirementMode.Any)));
+        }
 
-        return Task.FromResult<
-            AuthorizationPolicy?>(
-                policy);
+        if (PermissionPolicyName.TryParseAll(
+                policyName,
+                out var allPermissions))
+        {
+            return Task.FromResult<AuthorizationPolicy?>(
+                CreatePolicy(
+                    new PermissionRequirement(
+                        allPermissions,
+                        PermissionRequirementMode.All)));
+        }
+
+        return _fallbackPolicyProvider
+            .GetPolicyAsync(policyName);
     }
+
+    private static AuthorizationPolicy CreatePolicy(
+    PermissionRequirement requirement)
+    {
+        return new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .AddRequirements(requirement)
+            .Build();
+    }
+
 }

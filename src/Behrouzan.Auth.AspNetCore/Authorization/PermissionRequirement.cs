@@ -3,10 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 namespace Behrouzan.Auth.AspNetCore.Authorization;
 
 /// <summary>
-/// Represents an authorization requirement that requires
-/// a specific permission.
+/// Represents an authorization requirement based on one or more permissions.
 /// </summary>
-public sealed class PermissionRequirement
+internal sealed class PermissionRequirement
     : IAuthorizationRequirement
 {
     /// <summary>
@@ -18,15 +17,50 @@ public sealed class PermissionRequirement
     /// </param>
     public PermissionRequirement(
         string permissionName)
+        : this(
+            [permissionName],
+            PermissionRequirementMode.Single)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            permissionName);
+    }
 
-        PermissionName = permissionName;
+    internal PermissionRequirement(
+        IReadOnlyCollection<string> permissionNames,
+        PermissionRequirementMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(permissionNames);
+
+        if (permissionNames.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one permission name must be provided.",
+                nameof(permissionNames));
+        }
+
+        foreach (var permissionName in permissionNames)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(
+                permissionName);
+        }
+
+        PermissionNames =
+            permissionNames
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+        Mode = mode;
     }
 
     /// <summary>
-    /// Gets the name of the required permission.
+    /// Gets the permission names associated with this requirement.
     /// </summary>
-    public string PermissionName { get; }
+    public IReadOnlyCollection<string> PermissionNames { get; }
+
+    /// <summary>
+    /// Gets the permission name when this requirement represents
+    /// a single permission.
+    /// </summary>
+    public string PermissionName =>
+        PermissionNames.Single();
+
+    internal PermissionRequirementMode Mode { get; }
 }

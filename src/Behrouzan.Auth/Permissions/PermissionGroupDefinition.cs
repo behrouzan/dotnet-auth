@@ -9,27 +9,6 @@ public sealed class PermissionGroupDefinition
     private readonly List<PermissionDefinition> _permissions = [];
     private readonly Action<string>? _registerPermissionName;
 
-    /// <summary>
-    /// Initializes a new permission group definition.
-    /// </summary>
-    /// <param name="name">
-    /// The unique name of the permission group.
-    /// </param>
-    /// <param name="displayName">
-    /// An optional human-readable display name for the group.
-    /// </param>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="name"/> is null, empty, or consists only of white-space characters.
-    /// </exception>
-    public PermissionGroupDefinition(
-    string name,
-    string? displayName = null)
-    : this(
-        name,
-        displayName,
-        null)
-    {
-    }
 
     internal PermissionGroupDefinition(
         string name,

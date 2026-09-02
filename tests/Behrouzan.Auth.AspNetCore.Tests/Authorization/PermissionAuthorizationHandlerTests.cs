@@ -177,5 +177,21 @@ public sealed class PermissionAuthorizationHandlerTests
 
             return Task.FromResult(_result);
         }
+
+        public Task<bool> IsAnyGrantedAsync(
+    TKey userId,
+    IEnumerable<string> permissionNames,
+    CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task<bool> AreAllGrantedAsync(
+            TKey userId,
+            IEnumerable<string> permissionNames,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
