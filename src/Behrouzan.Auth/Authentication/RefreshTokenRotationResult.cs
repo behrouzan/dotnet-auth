@@ -1,3 +1,5 @@
+namespace Behrouzan.Auth.Authentication;
+
 /// <summary>
 /// Represents the result of attempting to persist a refresh token rotation.
 /// </summary>

@@ -1,6 +1,9 @@
 using Behrouzan.Auth.DependencyInjection;
 using Behrouzan.Auth.Permissions;
 using Microsoft.Extensions.DependencyInjection;
+using Behrouzan.Auth.Authentication;
+using Microsoft.Extensions.Options;
+
 
 namespace Behrouzan.Auth.Tests.DependencyInjection;
 
@@ -114,5 +117,59 @@ public class ServiceCollectionExtensionsTests
                 "Products.View",
                 "View products");
         }
+    }
+
+    [Fact]
+    public void AddRefreshTokens_UsesDefaultOptions_WhenNoConfigurationIsProvided()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRefreshTokens();
+
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<RefreshTokenOptions>>()
+            .Value;
+
+        Assert.Equal(TimeSpan.FromDays(30), options.Lifetime);
+    }
+
+    [Fact]
+    public void AddRefreshTokens_AppliesCustomConfiguration()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRefreshTokens(options =>
+        {
+            options.Lifetime = TimeSpan.FromDays(14);
+        });
+
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<RefreshTokenOptions>>()
+            .Value;
+
+        Assert.Equal(TimeSpan.FromDays(14), options.Lifetime);
+    }
+
+    [Fact]
+    public void AddRefreshTokens_RejectsNonPositiveLifetime()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRefreshTokens(options =>
+        {
+            options.Lifetime = TimeSpan.Zero;
+        });
+
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<RefreshTokenOptions>>();
+
+        Assert.Throws<OptionsValidationException>(
+            () => _ = options.Value);
     }
 }

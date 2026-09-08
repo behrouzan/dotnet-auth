@@ -1,3 +1,5 @@
+namespace Behrouzan.Auth.Authentication;
+
 /// <summary>
 /// Represents the data required to persist a newly created refresh token.
 /// </summary>

@@ -1,3 +1,5 @@
+namespace Behrouzan.Auth.Authentication;
+
 /// <summary>
 /// Defines the persistence operations required for refresh tokens.
 /// </summary>

@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 
+namespace Behrouzan.Auth.Authentication;
+
 internal sealed class RefreshTokenGenerator
 {
     public string Generate()

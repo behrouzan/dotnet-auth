@@ -1,3 +1,5 @@
+namespace Behrouzan.Auth.Authentication;
+
 /// <summary>
 /// Represents refresh token data exposed through the refresh token persistence contract.
 /// </summary>

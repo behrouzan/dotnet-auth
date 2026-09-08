@@ -1,4 +1,4 @@
-
+namespace Behrouzan.Auth.Authentication;
 internal class RefreshToken<TKey> where TKey : notnull
 {
     public RefreshToken(Guid tokenId, TKey userId, byte[] tokenHash, DateTimeOffset createdAt, DateTimeOffset expiresAt)

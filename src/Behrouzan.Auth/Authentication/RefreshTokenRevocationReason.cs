@@ -1,3 +1,5 @@
+namespace Behrouzan.Auth.Authentication;
+
 /// <summary>
 /// Specifies the reason a refresh token was revoked.
 /// </summary>
