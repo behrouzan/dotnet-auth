@@ -27,8 +27,4 @@ public class RefreshTokenRevocationData
 public sealed class RefreshTokenRotationData
     : RefreshTokenRevocationData
 {
-    /// <summary>
-    /// Gets the identifier of the refresh token that replaced the current token.
-    /// </summary>
-    public required Guid ReplacedByTokenId { get; init; }
 }

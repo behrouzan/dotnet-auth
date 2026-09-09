@@ -12,10 +12,16 @@ internal sealed class RefreshTokenConfiguration<TUser, TKey>
     public void Configure(
         EntityTypeBuilder<RefreshToken<TKey>> builder)
     {
+        builder.ToTable("BehrouzanRefreshTokens");
+
         builder.HasKey(x => x.TokenId);
 
         builder.HasIndex(x => x.TokenHash)
             .IsUnique();
+        
+        builder.Property(x => x.TokenHash)
+            .IsRequired()
+            .HasMaxLength(32);
 
         builder.HasIndex(x => x.UserId);
 

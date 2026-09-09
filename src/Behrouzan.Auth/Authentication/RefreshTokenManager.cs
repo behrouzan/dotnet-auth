@@ -87,7 +87,6 @@ internal sealed class RefreshTokenManager<TKey>
             TokenId = tokenData.TokenId,
             RevokedAt = now,
             RevocationReason = RefreshTokenRevocationReason.Rotated,
-            ReplacedByTokenId = newTokenData.TokenId
         };
 
         var rotationResult = await _store.SaveRotationAsync(

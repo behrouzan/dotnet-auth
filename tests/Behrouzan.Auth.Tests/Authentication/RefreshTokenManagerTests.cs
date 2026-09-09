@@ -204,9 +204,6 @@ public sealed class RefreshTokenManagerTests
             RefreshTokenRevocationReason.Rotated,
             store.LastRotation.RevocationReason);
 
-        Assert.Equal(
-            store.LastNewToken.TokenId,
-            store.LastRotation.ReplacedByTokenId);
     }
 
     [Fact]

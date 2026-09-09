@@ -176,8 +176,7 @@ public sealed class RefreshTokenStoreTests
                 RevokedAt = revokedAt,
                 RevocationReason =
                     RefreshTokenRevocationReason.Rotated,
-                ReplacedByTokenId =
-                    replacement.TokenId
+
             };
 
         var result =
@@ -254,8 +253,6 @@ public sealed class RefreshTokenStoreTests
                 RevokedAt = originalRevokedAt.AddMinutes(1),
                 RevocationReason =
                     RefreshTokenRevocationReason.Rotated,
-                ReplacedByTokenId =
-                    replacement.TokenId
             };
 
         var result =
@@ -316,8 +313,6 @@ public sealed class RefreshTokenStoreTests
                 RevokedAt = firstRevokedAt,
                 RevocationReason =
                     RefreshTokenRevocationReason.Rotated,
-                ReplacedByTokenId =
-                    firstReplacement.TokenId
             };
 
         var firstResult =
@@ -339,8 +334,7 @@ public sealed class RefreshTokenStoreTests
                 RevokedAt = firstRevokedAt.AddMinutes(1),
                 RevocationReason =
                     RefreshTokenRevocationReason.Rotated,
-                ReplacedByTokenId =
-                    secondReplacement.TokenId
+
             };
 
         var secondResult =
@@ -367,6 +361,59 @@ public sealed class RefreshTokenStoreTests
                 secondReplacement.TokenHash);
 
         Assert.Null(secondReplacementInDatabase);
+    }
+
+    [Fact]
+    public async Task InsertAsync_WhenTokenHashAlreadyExists_ShouldThrow()
+    {
+        await using var fixture =
+            await CreateFixtureAsync();
+
+        var context = fixture.Context;
+        var store = CreateStore(context);
+
+        var userId = await AddUserAsync(context);
+
+        var tokenHash =
+            Enumerable.Range(1, 32)
+                .Select(x => (byte)x)
+                .ToArray();
+
+        var firstToken =
+            CreateToken(userId, tokenHash);
+
+        var secondToken =
+            CreateToken(userId, tokenHash);
+
+        await store.InsertAsync(firstToken);
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => store.InsertAsync(secondToken));
+    }
+
+    [Fact]
+    public async Task InsertAsync_WhenUserDoesNotExist_ShouldThrow()
+    {
+        await using var fixture =
+            await CreateFixtureAsync();
+
+        var context = fixture.Context;
+        var store = CreateStore(context);
+
+        var missingUserId = Guid.NewGuid();
+
+        var tokenHash =
+            Enumerable.Range(1, 32)
+                .Select(x => (byte)x)
+                .ToArray();
+
+        var token =
+            CreateToken(
+                missingUserId,
+                tokenHash);
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => store.InsertAsync(token));
     }
 
     private static RefreshTokenStore<TestDbContext, Guid>

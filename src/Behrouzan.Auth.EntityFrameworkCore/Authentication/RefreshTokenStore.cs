@@ -104,7 +104,7 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
                             currentToken.RevocationReason)
                         .SetProperty(
                             token => token.ReplacedByTokenId,
-                            currentToken.ReplacedByTokenId),
+                            newToken.TokenId),
                     cancellationToken);
 
             if (affectedRows == 1)
@@ -119,7 +119,7 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
             }
 
             await transaction.RollbackAsync(
-                cancellationToken);
+                CancellationToken.None);
             _dbContext.Entry(newTokenEntity).State = EntityState.Detached;
 
             var existingToken = await _dbContext
@@ -145,9 +145,6 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
         }
         catch
         {
-            await transaction.RollbackAsync(
-                cancellationToken);
-
             _dbContext.Entry(newTokenEntity).State =
                     EntityState.Detached;
 
