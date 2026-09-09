@@ -256,7 +256,10 @@ public sealed class PermissionCheckerIntegrationTests
         {
             base.OnModelCreating(builder);
 
-            builder.ConfigureBehrouzanAuth<Guid>();
+              builder.ConfigureBehrouzanAuth<
+                TestUser,
+                TestRole,
+                Guid>();
         }
     }
 

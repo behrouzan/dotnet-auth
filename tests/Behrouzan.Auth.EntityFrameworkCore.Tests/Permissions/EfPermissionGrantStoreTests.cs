@@ -108,7 +108,10 @@ public sealed class EfPermissionGrantStoreTests
         {
             base.OnModelCreating(builder);
 
-            builder.ConfigureBehrouzanAuth<Guid>();
+            builder.ConfigureBehrouzanAuth<
+                TestUser,
+                TestRole,
+                Guid>();
         }
     }
 }

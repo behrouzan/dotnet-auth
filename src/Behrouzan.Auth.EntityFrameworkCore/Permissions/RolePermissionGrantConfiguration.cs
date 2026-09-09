@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.AspNetCore.Identity;
 
 namespace Behrouzan.Auth.EntityFrameworkCore.Permissions;
 
-internal sealed class RolePermissionGrantConfiguration<TKey>
+internal sealed class RolePermissionGrantConfiguration<TRole, TKey>
     : IEntityTypeConfiguration<RolePermissionGrant<TKey>>
-    where TKey : notnull
+    where TRole : IdentityRole<TKey>
+    where TKey : IEquatable<TKey>
 {
     public void Configure(
         EntityTypeBuilder<RolePermissionGrant<TKey>> builder)
@@ -23,5 +25,10 @@ internal sealed class RolePermissionGrantConfiguration<TKey>
                 grant => grant.PermissionName)
             .HasMaxLength(256)
             .IsRequired();
+
+        builder.HasOne<TRole>()
+            .WithMany()
+            .HasForeignKey(x => x.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

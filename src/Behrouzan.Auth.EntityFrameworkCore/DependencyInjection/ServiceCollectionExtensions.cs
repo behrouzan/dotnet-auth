@@ -1,5 +1,7 @@
 using Behrouzan.Auth.EntityFrameworkCore.Permissions;
 using Behrouzan.Auth.Permissions;
+using Behrouzan.Auth.Authentication;
+using Behrouzan.Auth.EntityFrameworkCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,6 +61,12 @@ public static class ServiceCollectionExtensions
                 TContext,
                 TUser,
                 TRole,
+                TKey>>();
+
+        services.TryAddScoped<
+            IRefreshTokenStore<TKey>,
+            RefreshTokenStore<
+                TContext,
                 TKey>>();
 
         return services;

@@ -1,6 +1,7 @@
 using Behrouzan.Auth.EntityFrameworkCore.Extensions;
 using Behrouzan.Auth.EntityFrameworkCore.Permissions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace Behrouzan.Auth.EntityFrameworkCore.Tests.Permissions;
 
@@ -53,7 +54,10 @@ public sealed class RolePermissionGrantConfigurationTests
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
-            modelBuilder.ConfigureBehrouzanAuth<Guid>();
+            modelBuilder.ConfigureBehrouzanAuth<
+                IdentityUser<Guid>,
+                IdentityRole<Guid>,
+                Guid>();
         }
     }
 }
