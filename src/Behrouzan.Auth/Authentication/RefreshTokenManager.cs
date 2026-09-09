@@ -26,6 +26,15 @@ internal sealed class RefreshTokenManager<TKey>
         _options = options.Value;
     }
 
+    public async Task<RefreshTokenResult> CreateAsync(TKey userId, CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow();
+        var (newRawToken, newTokenData) = CreateToken(userId, now);
+        await _store.InsertAsync(newTokenData, cancellationToken);
+        return RefreshTokenResult.Success(newRawToken);
+
+    }
+
     public async Task<RefreshTokenResult> RefreshAsync(
         string refreshToken,
         CancellationToken cancellationToken = default)
@@ -70,25 +79,15 @@ internal sealed class RefreshTokenManager<TKey>
                 RefreshTokenErrorCodes.Expired);
         }
 
-        var newRawToken = _generator.Generate();
-        var newHashedToken = _hasher.Hash(newRawToken);
-        var newTokenId = Guid.NewGuid();
-
-        var newTokenData = new RefreshTokenCreateData<TKey>
-        {
-            TokenId = newTokenId,
-            UserId = tokenData.UserId,
-            TokenHash = newHashedToken,
-            CreatedAt = now,
-            ExpiresAt = now.Add(_options.Lifetime)
-        };
+        var (newRawToken, newTokenData) =
+            CreateToken(tokenData.UserId, now);
 
         var rotationData = new RefreshTokenRotationData
         {
             TokenId = tokenData.TokenId,
             RevokedAt = now,
             RevocationReason = RefreshTokenRevocationReason.Rotated,
-            ReplacedByTokenId = newTokenId
+            ReplacedByTokenId = newTokenData.TokenId
         };
 
         var rotationResult = await _store.SaveRotationAsync(
@@ -117,5 +116,58 @@ internal sealed class RefreshTokenManager<TKey>
 
         return RefreshTokenResult.Failure(
             RefreshTokenErrorCodes.ConcurrencyConflict);
+    }
+
+    public async Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+
+        var hashedToken = _hasher.Hash(refreshToken);
+
+        var tokenData = await _store.FindByHashAsync(
+            hashedToken,
+            cancellationToken);
+
+        if (tokenData is null ||
+           tokenData.RevokedAt is not null ||
+           tokenData.ExpiresAt <= now)
+        {
+            return;
+        }
+
+        var revocationData = new RefreshTokenRevocationData
+        {
+            TokenId = tokenData.TokenId,
+            RevokedAt = now,
+            RevocationReason = RefreshTokenRevocationReason.Logout
+        };
+
+        await _store.SaveRevocationAsync(revocationData, cancellationToken);
+
+    }
+
+    private (string RawToken, RefreshTokenCreateData<TKey> Data) CreateToken(
+        TKey userId,
+        DateTimeOffset now)
+    {
+        var rawToken = _generator.Generate();
+        var hashedToken = _hasher.Hash(rawToken);
+        var tokenId = Guid.NewGuid();
+
+        var tokenData = new RefreshTokenCreateData<TKey>
+        {
+            TokenId = tokenId,
+            UserId = userId,
+            TokenHash = hashedToken,
+            CreatedAt = now,
+            ExpiresAt = now.Add(_options.Lifetime)
+        };
+
+        return (rawToken, tokenData);
     }
 }
