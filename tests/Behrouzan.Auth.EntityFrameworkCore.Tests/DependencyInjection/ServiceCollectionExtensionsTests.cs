@@ -1,4 +1,5 @@
 using Behrouzan.Auth.Authentication;
+using Behrouzan.Auth.Permissions;
 using Behrouzan.Auth.EntityFrameworkCore.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -59,5 +60,34 @@ public sealed class ServiceCollectionExtensionsTests
             : base(options)
         {
         }
+    }
+
+    [Fact]
+    public void AddBehrouzanAuthEntityFrameworkCore_ShouldRegisterRolePermissionGrantStore()
+    {
+        var services = new ServiceCollection();
+
+        services.AddDbContext<TestDbContext>(
+            options =>
+                options.UseInMemoryDatabase(
+                    Guid.NewGuid().ToString()));
+
+        services.AddBehrouzanAuthEntityFrameworkCore<
+            TestDbContext,
+            TestUser,
+            TestRole,
+            Guid>();
+
+        using var provider =
+            services.BuildServiceProvider();
+
+        using var scope =
+            provider.CreateScope();
+
+        var store =
+            scope.ServiceProvider
+                .GetService<IRolePermissionGrantStore<Guid>>();
+
+        Assert.NotNull(store);
     }
 }

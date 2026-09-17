@@ -1,7 +1,7 @@
+using Behrouzan.Auth.Authentication;
 using Behrouzan.Auth.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Behrouzan.Auth.Authentication;
 
 namespace Behrouzan.Auth.DependencyInjection;
 
@@ -40,6 +40,8 @@ public static class ServiceCollectionExtensions
                 return manager.Build();
             });
 
+        services.TryAddScoped(typeof(RolePermissionManager<>));
+        
         return services;
     }
 

@@ -1,7 +1,7 @@
-using Behrouzan.Auth.EntityFrameworkCore.Permissions;
-using Behrouzan.Auth.Permissions;
 using Behrouzan.Auth.Authentication;
 using Behrouzan.Auth.EntityFrameworkCore.Authentication;
+using Behrouzan.Auth.EntityFrameworkCore.Permissions;
+using Behrouzan.Auth.Permissions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,6 +68,10 @@ public static class ServiceCollectionExtensions
             RefreshTokenStore<
                 TContext,
                 TKey>>();
+
+        services.TryAddScoped<
+            IRolePermissionGrantStore<TKey>,
+            RolePermissionGrantStore<TContext, TKey>>();
 
         return services;
     }
