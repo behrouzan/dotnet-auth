@@ -1,4 +1,6 @@
 using Behrouzan.Auth.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Sample.Api.Identity;
 
@@ -17,6 +19,16 @@ internal static class AuthEndpoints
         endpoints.MapGet(
             "/auth/me",
             GetCurrentUserAsync)
+            .RequireAuthorization();
+
+        endpoints.MapGet(
+            "/auth/antiforgery",
+            GetAntiforgeryToken)
+            .RequireAuthorization();
+
+        endpoints.MapPost(
+            "/auth/logout",
+            LogoutAsync)
             .RequireAuthorization();
 
         return endpoints;
@@ -73,6 +85,39 @@ internal static class AuthEndpoints
                     user.PhoneNumber));
     }
 
+    private static IResult GetAntiforgeryToken(
+        HttpContext httpContext,
+        IAntiforgery antiforgery)
+    {
+        var tokens = antiforgery.GetAndStoreTokens(httpContext);
+
+        httpContext.Response.Headers.CacheControl = "no-store";
+
+        return Results.Ok(
+            new AntiforgeryTokenResponse(
+                tokens.RequestToken ??
+                throw new InvalidOperationException(
+                    "An antiforgery request token was not generated.")));
+    }
+
+    private static async Task<IResult> LogoutAsync(
+        HttpContext httpContext,
+        IAntiforgery antiforgery)
+    {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(httpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return Results.BadRequest();
+        }
+
+        await httpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+
+        return Results.NoContent();
+    }
+
     private sealed record LoginRequest(
         string Identifier,
         string Password,
@@ -83,4 +128,6 @@ internal static class AuthEndpoints
         string? UserName,
         string? Email,
         string? PhoneNumber);
+
+    private sealed record AntiforgeryTokenResponse(string RequestToken);
 }
