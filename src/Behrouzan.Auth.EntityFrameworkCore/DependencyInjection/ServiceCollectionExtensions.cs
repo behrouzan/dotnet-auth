@@ -73,6 +73,9 @@ public static class ServiceCollectionExtensions
             IRolePermissionGrantStore<TKey>,
             RolePermissionGrantStore<TContext, TKey>>();
 
+        services.TryAddScoped<IUserIdentifierLookup<TUser>,
+            PhoneNumberUserIdentifierLookup<TContext, TUser, TKey>>();
+
         return services;
     }
 }

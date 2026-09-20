@@ -4,6 +4,10 @@ using Behrouzan.Auth.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Behrouzan.Auth.AspNetCore.Authorization;
+using Behrouzan.Auth.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
+
 
 namespace Behrouzan.Auth.AspNetCore.Tests.DependencyInjection;
 
@@ -122,6 +126,129 @@ public sealed class ServiceCollectionExtensionsTests
             requirement.PermissionName);
     }
 
+
+    [Fact]
+    public void AddBehrouzanPasswordSignIn_ShouldRegisterRequiredServices()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanPasswordSignIn<TestUser>();
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var resolverDescriptor =
+            services.Single(
+                descriptor =>
+                    descriptor.ServiceType ==
+                    typeof(IUserSignInResolver<TestUser>));
+
+        var managerDescriptor =
+            services.Single(
+                descriptor =>
+                    descriptor.ServiceType ==
+                    typeof(PasswordSignInManager<TestUser>));
+
+        Assert.Equal(
+            typeof(DefaultUserSignInResolver<TestUser>),
+            resolverDescriptor.ImplementationType);
+
+        Assert.Equal(
+            ServiceLifetime.Scoped,
+            resolverDescriptor.Lifetime);
+
+        Assert.Equal(
+            ServiceLifetime.Scoped,
+            managerDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBehrouzanPasswordSignIn_ShouldConfigureOptions()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanPasswordSignIn<TestUser>(
+            options =>
+            {
+                options.AllowedIdentifiers =
+                    SignInIdentifier.UserName |
+                    SignInIdentifier.Email;
+
+                options.LockoutOnFailure = false;
+            });
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var options =
+            serviceProvider
+                .GetRequiredService<
+                    IOptions<PasswordSignInOptions>>()
+                .Value;
+
+        Assert.Equal(
+            SignInIdentifier.UserName |
+            SignInIdentifier.Email,
+            options.AllowedIdentifiers);
+
+        Assert.False(options.LockoutOnFailure);
+    }
+
+    [Fact]
+    public void AddBehrouzanPasswordSignIn_ShouldUseDefaultOptions()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddBehrouzanPasswordSignIn<TestUser>();
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        var options =
+            serviceProvider
+                .GetRequiredService<
+                    IOptions<PasswordSignInOptions>>()
+                .Value;
+
+        Assert.Equal(
+            SignInIdentifier.UserName,
+            options.AllowedIdentifiers);
+
+        Assert.True(options.LockoutOnFailure);
+    }
+
+
+    [Fact]
+    public void AddBehrouzanPasswordSignIn_ShouldPreserveExistingResolver()
+    {
+        var services =
+            new ServiceCollection();
+
+        services.AddScoped<
+            IUserSignInResolver<TestUser>,
+            CustomUserSignInResolver>();
+
+        services.AddBehrouzanPasswordSignIn<TestUser>();
+
+        using var serviceProvider =
+            services.BuildServiceProvider();
+
+        using var scope =
+            serviceProvider.CreateScope();
+
+        var resolver =
+            scope.ServiceProvider
+                .GetRequiredService<
+                    IUserSignInResolver<TestUser>>();
+
+        Assert.IsType<CustomUserSignInResolver>(
+            resolver);
+    }
+
+
     private sealed class FakePermissionChecker
         : IPermissionChecker<Guid>
     {
@@ -161,4 +288,22 @@ public sealed class ServiceCollectionExtensionsTests
             return false;
         }
     }
+
+    private sealed class TestUser
+        : IdentityUser<Guid>
+    {
+    }
+
+    private sealed class CustomUserSignInResolver
+        : IUserSignInResolver<TestUser>
+    {
+        public Task<UserSignInResolution<TestUser>> ResolveAsync(
+            string identifier,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                UserSignInResolution<TestUser>.NotFound());
+        }
+    }
+
 }
