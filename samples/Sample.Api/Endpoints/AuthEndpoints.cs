@@ -24,7 +24,7 @@ internal static class AuthEndpoints
         endpoints.MapGet(
             "/auth/antiforgery",
             GetAntiforgeryToken)
-            .RequireAuthorization();
+            .AllowAnonymous();
 
         endpoints.MapPost(
             "/auth/logout",
@@ -36,9 +36,20 @@ internal static class AuthEndpoints
 
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
+        HttpContext httpContext,
+        IAntiforgery antiforgery,
         PasswordSignInManager<ApplicationUser> signInManager,
         CancellationToken cancellationToken)
     {
+        try
+        {
+            await antiforgery.ValidateRequestAsync(httpContext);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return Results.BadRequest();
+        }
+
         if (string.IsNullOrWhiteSpace(request.Identifier) ||
             string.IsNullOrWhiteSpace(request.Password))
         {
