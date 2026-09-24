@@ -14,6 +14,21 @@ namespace Behrouzan.Auth.AspNetCore.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Adds token-refresh orchestration for application-supplied user resolvers.</summary>
+    /// <typeparam name="TUser">The application user type.</typeparam>
+    /// <typeparam name="TKey">The type of the persisted user identifier.</typeparam>
+    /// <param name="services">The service collection to configure.</param>
+    /// <returns>The same service collection.</returns>
+    public static IServiceCollection AddBehrouzanTokenRefresh<TUser, TKey>(
+        this IServiceCollection services)
+        where TUser : class
+        where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddScoped<TokenRefreshManager<TUser, TKey>>();
+        return services;
+    }
+
     /// <summary>
     /// Adds token-login orchestration for an application-supplied token user identity resolver.
     /// </summary>

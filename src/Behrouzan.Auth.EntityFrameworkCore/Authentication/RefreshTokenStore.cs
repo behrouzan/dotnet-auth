@@ -93,7 +93,8 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
                 .Set<RefreshToken<TKey>>()
                 .Where(token =>
                     token.TokenId == currentToken.TokenId &&
-                    token.RevokedAt == null)
+                    token.RevokedAt == null &&
+                    token.ExpiresAt > currentToken.RevokedAt)
                 .ExecuteUpdateAsync(
                     setters => setters
                         .SetProperty(
@@ -129,6 +130,7 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
                     token.TokenId == currentToken.TokenId)
                 .Select(token => new
                 {
+                    token.ExpiresAt,
                     token.RevokedAt,
                     token.RevocationReason,
                     token.ReplacedByTokenId
@@ -138,6 +140,7 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
             return new RefreshTokenRotationResult
             {
                 Succeeded = false,
+                ExpiresAt = existingToken?.ExpiresAt,
                 RevokedAt = existingToken?.RevokedAt,
                 RevocationReason = existingToken?.RevocationReason,
                 ReplacedByTokenId = existingToken?.ReplacedByTokenId

@@ -296,7 +296,12 @@ public sealed class TokenLoginManagerTests
             return Task.FromResult(_result);
         }
 
-        public Task<RefreshTokenResult> RefreshAsync(
+        public Task<RefreshTokenRenewalResult<Guid>> RefreshAsync(
+            string refreshToken,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<RefreshTokenValidationResult<Guid>> ValidateAsync(
             string refreshToken,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();

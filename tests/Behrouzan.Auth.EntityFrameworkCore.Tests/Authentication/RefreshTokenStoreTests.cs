@@ -280,6 +280,40 @@ public sealed class RefreshTokenStoreTests
     }
 
     [Fact]
+    public async Task SaveRotationAsync_ShouldRollbackReplacement_WhenTokenExpiresBeforeRotation()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        var store = CreateStore(fixture.Context);
+        var userId = await AddUserAsync(fixture.Context);
+        var currentToken = CreateToken(userId, [63, 64, 65]);
+        await store.InsertAsync(currentToken);
+
+        var validatedToken = await store.FindByHashAsync(currentToken.TokenHash);
+        Assert.NotNull(validatedToken);
+        Assert.Null(validatedToken.RevokedAt);
+
+        var replacement = CreateToken(userId, [66, 67, 68]);
+        var rotation = new RefreshTokenRotationData
+        {
+            TokenId = currentToken.TokenId,
+            RevokedAt = currentToken.ExpiresAt,
+            RevocationReason = RefreshTokenRevocationReason.Rotated
+        };
+
+        var result = await store.SaveRotationAsync(rotation, replacement);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(currentToken.ExpiresAt, result.ExpiresAt);
+        Assert.Null(result.RevokedAt);
+        Assert.Null(await store.FindByHashAsync(replacement.TokenHash));
+
+        var unchangedToken = await store.FindByHashAsync(currentToken.TokenHash);
+        Assert.NotNull(unchangedToken);
+        Assert.Null(unchangedToken.RevokedAt);
+        Assert.Null(unchangedToken.ReplacedByTokenId);
+    }
+
+    [Fact]
     public async Task SaveRotationAsync_ShouldReturnExistingRotationMetadata_WhenTokenWasAlreadyRotated()
     {
         await using var fixture = await CreateFixtureAsync();

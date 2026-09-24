@@ -187,6 +187,7 @@ public sealed class RefreshTokenManagerTests
         Assert.NotNull(result.Token);
         Assert.NotEmpty(result.Token);
         Assert.Null(result.ErrorCode);
+        Assert.Equal(userId, result.UserId);
 
         Assert.NotNull(store.LastNewToken);
         Assert.NotNull(store.LastRotation);
@@ -204,6 +205,63 @@ public sealed class RefreshTokenManagerTests
             RefreshTokenRevocationReason.Rotated,
             store.LastRotation.RevocationReason);
 
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTokenIsActive_ReturnsStoredOwnerWithoutRotation()
+    {
+        var userId = Guid.NewGuid();
+        var store = new FakeRefreshTokenStore<Guid>
+        {
+            TokenToReturn = new RefreshTokenData<Guid>
+            {
+                TokenId = Guid.NewGuid(),
+                UserId = userId,
+                ExpiresAt = Now.AddDays(10)
+            }
+        };
+        var manager = CreateManager(store);
+
+        var result = await manager.ValidateAsync("refresh-token");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(userId, result.UserId);
+        Assert.Null(result.ErrorCode);
+        Assert.Null(store.LastRotation);
+        Assert.Null(store.LastNewToken);
+    }
+
+    [Theory]
+    [InlineData("invalid", RefreshTokenErrorCodes.InvalidToken)]
+    [InlineData("expired", RefreshTokenErrorCodes.Expired)]
+    [InlineData("revoked", RefreshTokenErrorCodes.Revoked)]
+    [InlineData("reused", RefreshTokenErrorCodes.ReuseDetected)]
+    public async Task ValidateAsync_ShouldPreserveErrorsWithoutRotation(
+        string state,
+        string expectedError)
+    {
+        var token = state == "invalid"
+            ? null
+            : new RefreshTokenData<Guid>
+            {
+                TokenId = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                ExpiresAt = state == "expired" ? Now : Now.AddDays(1),
+                RevokedAt = state is "revoked" or "reused" ? Now.AddMinutes(-1) : null,
+                RevocationReason = state == "reused"
+                    ? RefreshTokenRevocationReason.Rotated
+                    : state == "revoked" ? RefreshTokenRevocationReason.Logout : null,
+                ReplacedByTokenId = state == "reused" ? Guid.NewGuid() : null
+            };
+        var store = new FakeRefreshTokenStore<Guid> { TokenToReturn = token };
+        var manager = CreateManager(store);
+
+        var result = await manager.ValidateAsync("refresh-token");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(expectedError, result.ErrorCode);
+        Assert.Null(store.LastRotation);
+        Assert.Null(store.LastNewToken);
     }
 
     [Fact]
@@ -280,6 +338,27 @@ public sealed class RefreshTokenManagerTests
         Assert.Equal(
             RefreshTokenErrorCodes.ConcurrencyConflict,
             result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WhenTokenExpiresAtAtomicRotation_ReturnsExpired()
+    {
+        var store = new FakeRefreshTokenStore<Guid>
+        {
+            TokenToReturn = CreateActiveToken(),
+            RotationResult = new RefreshTokenRotationResult
+            {
+                Succeeded = false,
+                ExpiresAt = Now
+            }
+        };
+        var manager = CreateManager(store);
+
+        var result = await manager.RefreshAsync("refresh-token");
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Token);
+        Assert.Equal(RefreshTokenErrorCodes.Expired, result.ErrorCode);
     }
 
     private static RefreshTokenManager<Guid> CreateManager(

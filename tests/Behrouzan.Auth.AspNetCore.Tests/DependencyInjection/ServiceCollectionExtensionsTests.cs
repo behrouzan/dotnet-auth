@@ -14,6 +14,23 @@ namespace Behrouzan.Auth.AspNetCore.Tests.DependencyInjection;
 public sealed class ServiceCollectionExtensionsTests
 {
     [Fact]
+    public void AddBehrouzanTokenRefresh_ShouldRegisterScopedManagerOnly()
+    {
+        var services = new ServiceCollection();
+        services.AddBehrouzanTokenRefresh<CustomTokenUser, CustomTokenKey>();
+
+        var manager = services.Single(
+            descriptor => descriptor.ServiceType ==
+                typeof(TokenRefreshManager<CustomTokenUser, CustomTokenKey>));
+
+        Assert.Equal(ServiceLifetime.Scoped, manager.Lifetime);
+        Assert.DoesNotContain(
+            services,
+            descriptor => descriptor.ServiceType ==
+                typeof(IRefreshTokenUserResolver<CustomTokenUser, CustomTokenKey>));
+    }
+
+    [Fact]
     public void AddBehrouzanTokenLogin_ShouldSupportCustomUserAndKeyResolver()
     {
         var services = new ServiceCollection();

@@ -199,7 +199,12 @@ public sealed class TokenLoginIdentityIntegrationTests
             return Task.FromResult(RefreshTokenResult.Success("refresh-token"));
         }
 
-        public Task<RefreshTokenResult> RefreshAsync(
+        public Task<RefreshTokenRenewalResult<Guid>> RefreshAsync(
+            string refreshToken,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<RefreshTokenValidationResult<Guid>> ValidateAsync(
             string refreshToken,
             CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
