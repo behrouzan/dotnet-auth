@@ -301,6 +301,87 @@ public sealed class PasswordSignInManagerTests
             signInManager.LastIsPersistent);
     }
 
+    [Fact]
+    public async Task AuthenticateAsync_ShouldReturnResolvedUser_WhenPasswordIsCorrect()
+    {
+        var user = new TestUser { Id = Guid.NewGuid() };
+        var signInManager = CreateSignInManager(SignInResult.Success);
+
+        var result = await CreateAuthenticationManager(
+            new TestUserSignInResolver(UserSignInResolution<TestUser>.Resolved(user)),
+            signInManager).AuthenticateAsync("behzad", "correct-password");
+
+        Assert.True(result.IsSuccess);
+        Assert.Same(user, result.User);
+        Assert.Null(result.ErrorCode);
+        Assert.Equal(1, signInManager.CheckPasswordSignInCallCount);
+        Assert.Equal(0, signInManager.PasswordSignInCallCount);
+    }
+
+    [Theory]
+    [InlineData(UserSignInResolutionStatus.NotFound)]
+    [InlineData(UserSignInResolutionStatus.Ambiguous)]
+    public async Task AuthenticateAsync_ShouldReturnInvalidCredentials_WhenUserIsNotUniquelyResolved(
+        UserSignInResolutionStatus status)
+    {
+        var resolution = status == UserSignInResolutionStatus.NotFound
+            ? UserSignInResolution<TestUser>.NotFound()
+            : UserSignInResolution<TestUser>.Ambiguous();
+        var signInManager = CreateSignInManager();
+
+        var result = await CreateAuthenticationManager(
+            new TestUserSignInResolver(resolution), signInManager)
+            .AuthenticateAsync("identifier", "password");
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.User);
+        Assert.Equal(PasswordAuthenticationErrorCode.InvalidCredentials, result.ErrorCode);
+        Assert.Equal(0, signInManager.CheckPasswordSignInCallCount);
+        Assert.Equal(0, signInManager.PasswordSignInCallCount);
+    }
+
+    [Theory]
+    [InlineData("failed", PasswordAuthenticationErrorCode.InvalidCredentials)]
+    [InlineData("lockedOut", PasswordAuthenticationErrorCode.LockedOut)]
+    [InlineData("notAllowed", PasswordAuthenticationErrorCode.NotAllowed)]
+    public async Task AuthenticateAsync_ShouldMapIdentityFailure(
+        string identityResult,
+        PasswordAuthenticationErrorCode expectedErrorCode)
+    {
+        var user = new TestUser { Id = Guid.NewGuid() };
+        var signInResult = identityResult switch
+        {
+            "lockedOut" => SignInResult.LockedOut,
+            "notAllowed" => SignInResult.NotAllowed,
+            _ => SignInResult.Failed
+        };
+        var signInManager = CreateSignInManager(signInResult);
+
+        var result = await CreateAuthenticationManager(
+            new TestUserSignInResolver(UserSignInResolution<TestUser>.Resolved(user)),
+            signInManager).AuthenticateAsync("behzad", "password");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(expectedErrorCode, result.ErrorCode);
+        Assert.Equal(1, signInManager.CheckPasswordSignInCallCount);
+        Assert.Equal(0, signInManager.PasswordSignInCallCount);
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_ShouldUseConfiguredLockoutOnFailure()
+    {
+        var user = new TestUser { Id = Guid.NewGuid() };
+        var signInManager = CreateSignInManager(SignInResult.Failed);
+
+        await CreateAuthenticationManager(
+            new TestUserSignInResolver(UserSignInResolution<TestUser>.Resolved(user)),
+            signInManager,
+            lockoutOnFailure: false).AuthenticateAsync("behzad", "password");
+
+        Assert.False(signInManager.LastCheckLockoutOnFailure);
+        Assert.Equal(0, signInManager.PasswordSignInCallCount);
+    }
+
 
     private static PasswordSignInManager<TestUser> CreateManager(
         IUserSignInResolver<TestUser> userResolver,
@@ -316,6 +397,22 @@ public sealed class PasswordSignInManagerTests
                 });
 
         return new PasswordSignInManager<TestUser>(
+            userResolver,
+            signInManager,
+            options);
+    }
+
+    private static PasswordAuthenticationManager<TestUser> CreateAuthenticationManager(
+        IUserSignInResolver<TestUser> userResolver,
+        TestSignInManager signInManager,
+        bool lockoutOnFailure = true)
+    {
+        var options = Options.Create(new PasswordSignInOptions
+        {
+            LockoutOnFailure = lockoutOnFailure
+        });
+
+        return new PasswordAuthenticationManager<TestUser>(
             userResolver,
             signInManager,
             options);
@@ -369,6 +466,7 @@ public sealed class PasswordSignInManagerTests
             get;
             private set;
         }
+        public bool? LastCheckLockoutOnFailure { get; private set; }
         public TestSignInManager(
             SignInResult result)
             : base(
@@ -405,6 +503,19 @@ public sealed class PasswordSignInManagerTests
             return Task.FromResult(
                 _result);
         }
+
+        public override Task<SignInResult> CheckPasswordSignInAsync(
+            TestUser user,
+            string password,
+            bool lockoutOnFailure)
+        {
+            CheckPasswordSignInCallCount++;
+            LastCheckLockoutOnFailure = lockoutOnFailure;
+
+            return Task.FromResult(_result);
+        }
+
+        public int CheckPasswordSignInCallCount { get; private set; }
     }
 
     private sealed class TestUserManager

@@ -85,6 +85,8 @@ public static class ServiceCollectionExtensions
             IUserSignInResolver<TUser>,
             DefaultUserSignInResolver<TUser>>();
 
+        services.TryAddScoped<PasswordAuthenticationManager<TUser>>();
+
         services.TryAddScoped<PasswordSignInManager<TUser>>();
 
         return services;

@@ -150,6 +150,12 @@ public sealed class ServiceCollectionExtensionsTests
                     descriptor.ServiceType ==
                     typeof(PasswordSignInManager<TestUser>));
 
+        var authenticationManagerDescriptor =
+            services.Single(
+                descriptor =>
+                    descriptor.ServiceType ==
+                    typeof(PasswordAuthenticationManager<TestUser>));
+
         Assert.Equal(
             typeof(DefaultUserSignInResolver<TestUser>),
             resolverDescriptor.ImplementationType);
@@ -161,6 +167,10 @@ public sealed class ServiceCollectionExtensionsTests
         Assert.Equal(
             ServiceLifetime.Scoped,
             managerDescriptor.Lifetime);
+
+        Assert.Equal(
+            ServiceLifetime.Scoped,
+            authenticationManagerDescriptor.Lifetime);
     }
 
     [Fact]
