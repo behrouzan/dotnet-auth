@@ -70,4 +70,21 @@ public interface IRefreshTokenManager<TKey>
     Task RevokeAsync(
         string refreshToken,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Revokes all active, unexpired refresh tokens owned by the specified user.
+    /// </summary>
+    /// <param name="userId">
+    /// The trusted user identifier obtained from the currently authenticated identity.
+    /// </param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>A task that represents the idempotent bulk revocation operation.</returns>
+    /// <remarks>
+    /// This operation does not expire previously issued access tokens and is not triggered
+    /// automatically by security-stamp changes. A new login completed after this operation
+    /// may create a new refresh-token session.
+    /// </remarks>
+    Task RevokeAllAsync(
+        TKey userId,
+        CancellationToken cancellationToken = default);
 }

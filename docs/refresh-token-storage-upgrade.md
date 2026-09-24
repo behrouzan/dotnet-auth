@@ -51,3 +51,24 @@ other providers. Generate and review the migration for the application's
 actual provider and previous column type. Do not deploy an automatically
 generated `AlterColumn` migration without an explicit data conversion and
 verification step.
+
+## Logout from all devices
+
+`IRefreshTokenManager<TKey>.RevokeAllAsync` revokes the active, unexpired
+refresh tokens belonging to one user. Callers must obtain `userId` from the
+currently authenticated identity; it must not be accepted from untrusted
+request input. The operation does not shorten already-issued access-token
+lifetimes, and security-stamp changes do not invoke it automatically. A login
+that completes after bulk revocation may create a fresh session.
+
+The EF implementation performs one conditional database update. On SQLite, a
+rotation that has committed before bulk revocation is included in the bulk
+update, while a rotation started after bulk revocation has completed cannot
+replace the revoked token. SQLite permits only one writer at a time, so truly
+overlapping writes may instead surface `SQLITE_BUSY` depending on connection
+timeout and transaction timing. The tests prove both completed-operation
+orderings on SQLite; they do not prove behavior for overlapping transactions.
+Other providers follow their configured transaction isolation and locking
+behavior, which this test suite does not verify. A stronger cross-provider
+ordering guarantee would require an explicit provider-specific locking policy
+or additional per-user revocation state.
