@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Behrouzan.Auth.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 
 namespace Behrouzan.Auth.AspNetCore.DependencyInjection;
 
@@ -13,6 +14,51 @@ namespace Behrouzan.Auth.AspNetCore.DependencyInjection;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Adds token-login orchestration for an application-supplied token user identity resolver.
+    /// </summary>
+    /// <typeparam name="TUser">The application user type.</typeparam>
+    /// <typeparam name="TKey">The type of the persisted user identifier.</typeparam>
+    /// <param name="services">The service collection to configure.</param>
+    /// <returns>The same service collection so that additional configuration can be chained.</returns>
+    /// <remarks>
+    /// Applications using a custom Identity user model must register an
+    /// <see cref="ITokenUserIdentityResolver{TUser, TKey}"/> separately.
+    /// </remarks>
+    public static IServiceCollection AddBehrouzanTokenLogin<TUser, TKey>(
+        this IServiceCollection services)
+        where TUser : class
+        where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddScoped<TokenLoginManager<TUser, TKey>>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds token-login orchestration and the standard resolver for an
+    /// <see cref="IdentityUser{TKey}"/>-based user type.
+    /// </summary>
+    /// <typeparam name="TUser">The Identity user type.</typeparam>
+    /// <typeparam name="TKey">The type of the Identity user identifier.</typeparam>
+    /// <param name="services">The service collection to configure.</param>
+    /// <returns>The same service collection so that additional configuration can be chained.</returns>
+    public static IServiceCollection AddBehrouzanIdentityTokenLogin<TUser, TKey>(
+        this IServiceCollection services)
+        where TUser : IdentityUser<TKey>
+        where TKey : notnull, IEquatable<TKey>
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddScoped<
+            ITokenUserIdentityResolver<TUser, TKey>,
+            DefaultTokenUserIdentityResolver<TUser, TKey>>();
+
+        return services.AddBehrouzanTokenLogin<TUser, TKey>();
+    }
+
     /// <summary>
     /// Adds access-token issuance services for explicitly supplied signing credentials.
     /// </summary>

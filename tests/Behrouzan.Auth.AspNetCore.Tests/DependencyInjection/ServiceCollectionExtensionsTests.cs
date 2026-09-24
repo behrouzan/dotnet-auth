@@ -14,6 +14,49 @@ namespace Behrouzan.Auth.AspNetCore.Tests.DependencyInjection;
 public sealed class ServiceCollectionExtensionsTests
 {
     [Fact]
+    public void AddBehrouzanTokenLogin_ShouldSupportCustomUserAndKeyResolver()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<
+            ITokenUserIdentityResolver<CustomTokenUser, CustomTokenKey>,
+            CustomTokenUserIdentityResolver>();
+
+        services.AddBehrouzanTokenLogin<CustomTokenUser, CustomTokenKey>();
+
+        var manager = services.Single(
+            descriptor => descriptor.ServiceType ==
+                typeof(TokenLoginManager<CustomTokenUser, CustomTokenKey>));
+        var resolver = services.Single(
+            descriptor => descriptor.ServiceType ==
+                typeof(ITokenUserIdentityResolver<CustomTokenUser, CustomTokenKey>));
+
+        Assert.Equal(ServiceLifetime.Scoped, manager.Lifetime);
+        Assert.Equal(typeof(CustomTokenUserIdentityResolver), resolver.ImplementationType);
+        Assert.Equal(ServiceLifetime.Scoped, resolver.Lifetime);
+    }
+
+    [Fact]
+    public void AddBehrouzanIdentityTokenLogin_ShouldRegisterStandardIdentityResolver()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanIdentityTokenLogin<TestUser, Guid>();
+
+        var manager = services.Single(
+            descriptor => descriptor.ServiceType ==
+                typeof(TokenLoginManager<TestUser, Guid>));
+        var resolver = services.Single(
+            descriptor => descriptor.ServiceType ==
+                typeof(ITokenUserIdentityResolver<TestUser, Guid>));
+
+        Assert.Equal(ServiceLifetime.Scoped, manager.Lifetime);
+        Assert.Equal(
+            typeof(DefaultTokenUserIdentityResolver<TestUser, Guid>),
+            resolver.ImplementationType);
+        Assert.Equal(ServiceLifetime.Scoped, resolver.Lifetime);
+    }
+
+    [Fact]
     public void AddBehrouzanAccessTokens_ShouldRegisterIssuanceServices()
     {
         var services = new ServiceCollection();
@@ -388,6 +431,28 @@ public sealed class ServiceCollectionExtensionsTests
     private sealed class TestUser
         : IdentityUser<Guid>
     {
+    }
+
+    private sealed class CustomTokenUser
+    {
+    }
+
+    private sealed class CustomTokenKey
+    {
+    }
+
+    private sealed class CustomTokenUserIdentityResolver
+        : ITokenUserIdentityResolver<CustomTokenUser, CustomTokenKey>
+    {
+        public Task<TokenUserIdentity<CustomTokenKey>> ResolveAsync(
+            CustomTokenUser user,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(
+                new TokenUserIdentity<CustomTokenKey>(
+                    new CustomTokenKey(),
+                    "custom-user-id"));
+        }
     }
 
     private sealed class CustomUserSignInResolver
