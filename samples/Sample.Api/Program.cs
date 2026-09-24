@@ -2,11 +2,14 @@ using Behrouzan.Auth.AspNetCore.Authentication;
 using Behrouzan.Auth.AspNetCore.DependencyInjection;
 using Behrouzan.Auth.DependencyInjection;
 using Behrouzan.Auth.EntityFrameworkCore.DependencyInjection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Sample.Api.Data;
 using Sample.Api.Endpoints;
 using Sample.Api.Identity;
+using Sample.Api.TokenAuthentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +34,32 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+var tokenOptions = SampleTokenAuthenticationOptions.FromConfiguration(
+    builder.Configuration.GetSection(
+        SampleTokenAuthenticationOptions.SectionName));
+
+builder.Services
+    .AddAuthentication()
+    .AddJwtBearer(
+        JwtBearerDefaults.AuthenticationScheme,
+        options =>
+        {
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = tokenOptions.Issuer,
+                ValidateAudience = true,
+                ValidAudience = tokenOptions.Audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = tokenOptions.SigningKey,
+                ValidAlgorithms = [tokenOptions.Algorithm],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                NameClaimType = "sub"
+            };
+        });
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Events.OnRedirectToLogin = context =>
@@ -48,6 +77,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddBehrouzanAuth();
+builder.Services.AddRefreshTokens(options =>
+    options.Lifetime = tokenOptions.RefreshTokenLifetime);
 builder.Services.AddBehrouzanAuthAspNetCore<Guid>();
 builder.Services.AddBehrouzanAuthEntityFrameworkCore<
     ApplicationDbContext,
@@ -61,6 +92,21 @@ builder.Services.AddBehrouzanPasswordSignIn<ApplicationUser>(options =>
         SignInIdentifier.Email |
         SignInIdentifier.PhoneNumber;
 });
+builder.Services.AddBehrouzanAccessTokens(options =>
+{
+    options.Issuer = tokenOptions.Issuer;
+    options.Audience = tokenOptions.Audience;
+    options.Lifetime = tokenOptions.AccessTokenLifetime;
+});
+builder.Services.AddBehrouzanIdentityTokenLogin<ApplicationUser, Guid>();
+builder.Services.AddBehrouzanTokenRefresh<ApplicationUser, Guid>();
+builder.Services.AddSingleton<IAccessTokenSigningCredentialsProvider>(
+    new SampleAccessTokenSigningCredentialsProvider(
+        tokenOptions.SigningKey,
+        tokenOptions.Algorithm));
+builder.Services.AddScoped<
+    IRefreshTokenUserResolver<ApplicationUser, Guid>,
+    ApplicationRefreshTokenUserResolver>();
 
 var app = builder.Build();
 
@@ -119,3 +165,5 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+public partial class Program;
