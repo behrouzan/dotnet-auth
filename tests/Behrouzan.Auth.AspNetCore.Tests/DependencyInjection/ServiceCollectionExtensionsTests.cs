@@ -14,6 +14,92 @@ namespace Behrouzan.Auth.AspNetCore.Tests.DependencyInjection;
 public sealed class ServiceCollectionExtensionsTests
 {
     [Fact]
+    public void AddBehrouzanAccessTokens_ShouldRegisterIssuanceServices()
+    {
+        var services = new ServiceCollection();
+
+        services.AddBehrouzanAccessTokens(options =>
+        {
+            options.Issuer = "https://issuer.example";
+            options.Audience = "behrouzan-api";
+        });
+
+        var managerDescriptor = services.Single(
+            descriptor => descriptor.ServiceType == typeof(AccessTokenManager));
+        var timeProviderDescriptor = services.Single(
+            descriptor => descriptor.ServiceType == typeof(TimeProvider));
+
+        Assert.Equal(ServiceLifetime.Scoped, managerDescriptor.Lifetime);
+        Assert.Equal(ServiceLifetime.Singleton, timeProviderDescriptor.Lifetime);
+        Assert.DoesNotContain(
+            services,
+            descriptor => descriptor.ServiceType ==
+                typeof(IAccessTokenSigningCredentialsProvider));
+    }
+
+    [Fact]
+    public void AddBehrouzanAccessTokens_ShouldApplyConfiguration()
+    {
+        var services = new ServiceCollection();
+        var lifetime = TimeSpan.FromMinutes(20);
+        services.AddBehrouzanAccessTokens(options =>
+        {
+            options.Issuer = "https://issuer.example";
+            options.Audience = "behrouzan-api";
+            options.Lifetime = lifetime;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AccessTokenOptions>>().Value;
+
+        Assert.Equal("https://issuer.example", options.Issuer);
+        Assert.Equal("behrouzan-api", options.Audience);
+        Assert.Equal(lifetime, options.Lifetime);
+    }
+
+    [Fact]
+    public void AddBehrouzanAccessTokens_ShouldUseDefaultLifetime()
+    {
+        var services = new ServiceCollection();
+        services.AddBehrouzanAccessTokens(options =>
+        {
+            options.Issuer = "https://issuer.example";
+            options.Audience = "behrouzan-api";
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AccessTokenOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromMinutes(15), options.Lifetime);
+    }
+
+    [Theory]
+    [InlineData("", "audience", 1)]
+    [InlineData("   ", "audience", 1)]
+    [InlineData("issuer", "", 1)]
+    [InlineData("issuer", "   ", 1)]
+    [InlineData("issuer", "audience", 0)]
+    [InlineData("issuer", "audience", -1)]
+    public void AddBehrouzanAccessTokens_ShouldRejectInvalidOptions(
+        string issuer,
+        string audience,
+        int lifetimeTicks)
+    {
+        var services = new ServiceCollection();
+        services.AddBehrouzanAccessTokens(options =>
+        {
+            options.Issuer = issuer;
+            options.Audience = audience;
+            options.Lifetime = TimeSpan.FromTicks(lifetimeTicks);
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AccessTokenOptions>>();
+
+        Assert.Throws<OptionsValidationException>(() => _ = options.Value);
+    }
+
+    [Fact]
     public void AddBehrouzanAuthAspNetCore_ShouldRegisterRequiredServices()
     {
         var services =

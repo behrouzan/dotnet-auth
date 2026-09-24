@@ -7,6 +7,9 @@
      <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Behrouzan.Auth.AspNetCore.Tests" />
   </ItemGroup>
   <PropertyGroup>

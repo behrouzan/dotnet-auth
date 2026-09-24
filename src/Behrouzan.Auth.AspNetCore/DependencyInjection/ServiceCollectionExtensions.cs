@@ -14,6 +14,42 @@ namespace Behrouzan.Auth.AspNetCore.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
+    /// Adds access-token issuance services for explicitly supplied signing credentials.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">An optional delegate used to configure access-token issuance.</param>
+    /// <returns>The same service collection so that additional configuration can be chained.</returns>
+    public static IServiceCollection AddBehrouzanAccessTokens(
+        this IServiceCollection services,
+        Action<AccessTokenOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services
+            .AddOptions<AccessTokenOptions>()
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.Issuer),
+                "Access token issuer must be non-empty.")
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.Audience),
+                "Access token audience must be non-empty.")
+            .Validate(
+                options => options.Lifetime > TimeSpan.Zero,
+                "Access token lifetime must be greater than zero.")
+            .ValidateOnStart();
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
+
+        services.TryAddScoped<AccessTokenManager>();
+        services.TryAddSingleton(TimeProvider.System);
+
+        return services;
+    }
+
+    /// <summary>
     /// Adds ASP.NET Core authorization services required by
     /// Behrouzan authentication.
     /// </summary>
