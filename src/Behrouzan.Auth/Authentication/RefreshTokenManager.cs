@@ -35,49 +35,30 @@ internal sealed class RefreshTokenManager<TKey>
 
     }
 
-    public async Task<RefreshTokenResult> RefreshAsync(
+    public async Task<RefreshTokenValidationResult<TKey>> ValidateAsync(
         string refreshToken,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken))
+        var validation = await ValidateTokenAsync(refreshToken, cancellationToken);
+
+        return validation.Token is not null
+            ? RefreshTokenValidationResult<TKey>.Success(validation.Token.UserId)
+            : RefreshTokenValidationResult<TKey>.Failure(validation.ErrorCode!);
+    }
+
+    public async Task<RefreshTokenRenewalResult<TKey>> RefreshAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        var validation = await ValidateTokenAsync(refreshToken, cancellationToken);
+
+        if (validation.Token is null)
         {
-            return RefreshTokenResult.Failure(
-                RefreshTokenErrorCodes.InvalidToken);
+            return RefreshTokenRenewalResult<TKey>.Failure(validation.ErrorCode!);
         }
 
         var now = _timeProvider.GetUtcNow();
-
-        var hashedToken = _hasher.Hash(refreshToken);
-
-        var tokenData = await _store.FindByHashAsync(
-            hashedToken,
-            cancellationToken);
-
-        if (tokenData is null)
-        {
-            return RefreshTokenResult.Failure(
-                RefreshTokenErrorCodes.InvalidToken);
-        }
-
-        if (tokenData.RevokedAt is not null &&
-                tokenData.RevocationReason == RefreshTokenRevocationReason.Rotated &&
-                tokenData.ReplacedByTokenId is not null)
-        {
-            return RefreshTokenResult.Failure(
-                RefreshTokenErrorCodes.ReuseDetected);
-        }
-
-        if (tokenData.RevokedAt is not null)
-        {
-            return RefreshTokenResult.Failure(
-                RefreshTokenErrorCodes.Revoked);
-        }
-
-        if (tokenData.ExpiresAt <= now)
-        {
-            return RefreshTokenResult.Failure(
-                RefreshTokenErrorCodes.Expired);
-        }
+        var tokenData = validation.Token;
 
         var (newRawToken, newTokenData) =
             CreateToken(tokenData.UserId, now);
@@ -96,25 +77,69 @@ internal sealed class RefreshTokenManager<TKey>
 
         if (rotationResult.Succeeded)
         {
-            return RefreshTokenResult.Success(newRawToken);
+            return RefreshTokenRenewalResult<TKey>.Success(tokenData.UserId, newRawToken);
         }
 
         if (rotationResult.RevokedAt is not null &&
             rotationResult.RevocationReason == RefreshTokenRevocationReason.Rotated &&
             rotationResult.ReplacedByTokenId is not null)
         {
-            return RefreshTokenResult.Failure(
+            return RefreshTokenRenewalResult<TKey>.Failure(
                 RefreshTokenErrorCodes.ReuseDetected);
         }
 
         if (rotationResult.RevokedAt is not null)
         {
-            return RefreshTokenResult.Failure(
+            return RefreshTokenRenewalResult<TKey>.Failure(
                 RefreshTokenErrorCodes.Revoked);
         }
 
-        return RefreshTokenResult.Failure(
+        if (rotationResult.ExpiresAt <= now)
+        {
+            return RefreshTokenRenewalResult<TKey>.Failure(
+                RefreshTokenErrorCodes.Expired);
+        }
+
+        return RefreshTokenRenewalResult<TKey>.Failure(
             RefreshTokenErrorCodes.ConcurrencyConflict);
+    }
+
+    private async Task<(RefreshTokenData<TKey>? Token, string? ErrorCode)> ValidateTokenAsync(
+        string refreshToken,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return (null, RefreshTokenErrorCodes.InvalidToken);
+        }
+
+        var tokenData = await _store.FindByHashAsync(
+            _hasher.Hash(refreshToken),
+            cancellationToken);
+
+        if (tokenData is null)
+        {
+            return (null, RefreshTokenErrorCodes.InvalidToken);
+        }
+
+        if (tokenData.RevokedAt is not null &&
+            tokenData.RevocationReason == RefreshTokenRevocationReason.Rotated &&
+            tokenData.ReplacedByTokenId is not null)
+        {
+            return (null, RefreshTokenErrorCodes.ReuseDetected);
+        }
+
+        if (tokenData.RevokedAt is not null)
+        {
+            return (null, RefreshTokenErrorCodes.Revoked);
+        }
+
+        if (tokenData.ExpiresAt <= _timeProvider.GetUtcNow())
+        {
+            return (null, RefreshTokenErrorCodes.Expired);
+        }
+
+        return (tokenData, null);
     }
 
     public async Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default)

@@ -27,4 +27,9 @@ public sealed class RefreshTokenRotationResult
     /// token, if it had already been rotated.
     /// </summary>
     public Guid? ReplacedByTokenId { get; init; }
+
+    /// <summary>
+    /// Gets the expiration time observed when the rotation could not be performed.
+    /// </summary>
+    public DateTimeOffset? ExpiresAt { get; init; }
 }

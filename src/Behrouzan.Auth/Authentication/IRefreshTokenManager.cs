@@ -16,10 +16,20 @@ public interface IRefreshTokenManager<TKey>
     /// A token that can be used to cancel the asynchronous operation.
     /// </param>
     /// <returns>
-    /// A result containing the newly issued refresh token when successful,
-    /// or an error code when the refresh operation fails.
+    /// A result containing the newly issued refresh token and its owner from
+    /// validated stored data when successful, or an error code when refresh fails.
     /// </returns>
-    Task<RefreshTokenResult> RefreshAsync(
+    Task<RefreshTokenRenewalResult<TKey>> RefreshAsync(
+        string refreshToken,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates a refresh token without rotating or otherwise mutating it.
+    /// </summary>
+    /// <param name="refreshToken">The raw refresh token supplied by the client.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The owner read from validated stored token data, or an existing error code.</returns>
+    Task<RefreshTokenValidationResult<TKey>> ValidateAsync(
         string refreshToken,
         CancellationToken cancellationToken = default);
 

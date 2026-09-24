@@ -23,6 +23,13 @@ internal sealed class RefreshTokenConfiguration<TUser, TKey>
             .IsRequired()
             .HasMaxLength(32);
 
+        builder.Property(x => x.ExpiresAt)
+            .HasConversion(
+                value => value.UtcTicks,
+                value => new DateTimeOffset(
+                    value,
+                    TimeSpan.Zero));
+
         builder.HasIndex(x => x.UserId);
 
         builder.HasOne<RefreshToken<TKey>>()
