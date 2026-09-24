@@ -143,6 +143,44 @@ public sealed class RefreshTokenStoreTests
     }
 
     [Fact]
+    public async Task RevokeAllAsync_ShouldRevokeOnlyOwnersActiveUnexpiredTokens_AndBeIdempotent()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        var store = CreateStore(fixture.Context);
+        var userId = await AddUserAsync(fixture.Context);
+        var otherUserId = await AddUserAsync(fixture.Context);
+        var now = new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero);
+        var first = CreateToken(userId, [23, 24, 25], now.AddDays(1));
+        var second = CreateToken(userId, [26, 27, 28], now.AddDays(2));
+        var expired = CreateToken(userId, [29, 30, 31], now);
+        var otherUser = CreateToken(otherUserId, [32, 33, 34], now.AddDays(1));
+        await store.InsertAsync(first);
+        await store.InsertAsync(second);
+        await store.InsertAsync(expired);
+        await store.InsertAsync(otherUser);
+
+        await store.RevokeAllAsync(
+            userId,
+            now,
+            RefreshTokenRevocationReason.LogoutAll);
+        await store.RevokeAllAsync(
+            userId,
+            now.AddHours(1),
+            RefreshTokenRevocationReason.LogoutAll);
+
+        var firstResult = await store.FindByHashAsync(first.TokenHash);
+        var secondResult = await store.FindByHashAsync(second.TokenHash);
+        var expiredResult = await store.FindByHashAsync(expired.TokenHash);
+        var otherResult = await store.FindByHashAsync(otherUser.TokenHash);
+        Assert.Equal(now, firstResult!.RevokedAt);
+        Assert.Equal(now, secondResult!.RevokedAt);
+        Assert.Equal(RefreshTokenRevocationReason.LogoutAll, firstResult.RevocationReason);
+        Assert.Equal(RefreshTokenRevocationReason.LogoutAll, secondResult.RevocationReason);
+        Assert.Null(expiredResult!.RevokedAt);
+        Assert.Null(otherResult!.RevokedAt);
+    }
+
+    [Fact]
     public async Task SaveRotationAsync_ShouldRevokeCurrentToken_AndPersistReplacement()
     {
         await using var fixture = await CreateFixtureAsync();
@@ -398,6 +436,68 @@ public sealed class RefreshTokenStoreTests
     }
 
     [Fact]
+    public async Task RevokeAllAsync_WhenRotationCompletesFirst_ShouldRevokeReplacement()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        var store = CreateStore(fixture.Context);
+        var userId = await AddUserAsync(fixture.Context);
+        var current = CreateToken(userId, [93, 94, 95]);
+        var replacement = CreateToken(userId, [96, 97, 98]);
+        await store.InsertAsync(current);
+        var rotatedAt = current.CreatedAt.AddHours(1);
+
+        var rotationResult = await store.SaveRotationAsync(
+            new RefreshTokenRotationData
+            {
+                TokenId = current.TokenId,
+                RevokedAt = rotatedAt,
+                RevocationReason = RefreshTokenRevocationReason.Rotated
+            },
+            replacement);
+        await store.RevokeAllAsync(
+            userId,
+            rotatedAt.AddMinutes(1),
+            RefreshTokenRevocationReason.LogoutAll);
+
+        Assert.True(rotationResult.Succeeded);
+        var currentResult = await store.FindByHashAsync(current.TokenHash);
+        var replacementResult = await store.FindByHashAsync(replacement.TokenHash);
+        Assert.Equal(RefreshTokenRevocationReason.Rotated, currentResult!.RevocationReason);
+        Assert.Equal(RefreshTokenRevocationReason.LogoutAll, replacementResult!.RevocationReason);
+    }
+
+    [Fact]
+    public async Task SaveRotationAsync_WhenRevokeAllCompletesFirst_ShouldRollbackReplacement()
+    {
+        await using var fixture = await CreateFixtureAsync();
+        var store = CreateStore(fixture.Context);
+        var userId = await AddUserAsync(fixture.Context);
+        var current = CreateToken(userId, [99, 100, 101]);
+        var replacement = CreateToken(userId, [102, 103, 104]);
+        await store.InsertAsync(current);
+        var revokedAt = current.CreatedAt.AddHours(1);
+
+        await store.RevokeAllAsync(
+            userId,
+            revokedAt,
+            RefreshTokenRevocationReason.LogoutAll);
+        var rotationResult = await store.SaveRotationAsync(
+            new RefreshTokenRotationData
+            {
+                TokenId = current.TokenId,
+                RevokedAt = revokedAt.AddMinutes(1),
+                RevocationReason = RefreshTokenRevocationReason.Rotated
+            },
+            replacement);
+
+        Assert.False(rotationResult.Succeeded);
+        Assert.Equal(RefreshTokenRevocationReason.LogoutAll, rotationResult.RevocationReason);
+        Assert.Null(await store.FindByHashAsync(replacement.TokenHash));
+        var currentResult = await store.FindByHashAsync(current.TokenHash);
+        Assert.Equal(RefreshTokenRevocationReason.LogoutAll, currentResult!.RevocationReason);
+    }
+
+    [Fact]
     public async Task InsertAsync_WhenTokenHashAlreadyExists_ShouldThrow()
     {
         await using var fixture =
@@ -460,7 +560,8 @@ public sealed class RefreshTokenStoreTests
 
     private static RefreshTokenCreateData<Guid> CreateToken(
         Guid userId,
-        byte[] tokenHash)
+        byte[] tokenHash,
+        DateTimeOffset? expiresAt = null)
     {
         var createdAt =
             new DateTimeOffset(
@@ -474,7 +575,7 @@ public sealed class RefreshTokenStoreTests
             UserId = userId,
             TokenHash = tokenHash,
             CreatedAt = createdAt,
-            ExpiresAt = createdAt.AddDays(30)
+            ExpiresAt = expiresAt ?? createdAt.AddDays(30)
         };
     }
 

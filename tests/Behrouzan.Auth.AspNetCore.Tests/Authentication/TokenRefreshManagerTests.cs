@@ -233,6 +233,9 @@ public sealed class TokenRefreshManagerTests
 
         public Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+
+        public Task RevokeAllAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class TestSigningCredentialsProvider

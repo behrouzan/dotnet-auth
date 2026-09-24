@@ -18,5 +18,10 @@ public enum RefreshTokenRevocationReason
     /// <summary>
     /// The token was revoked for security reasons.
     /// </summary>
-    Security = 3
+    Security = 3,
+
+    /// <summary>
+    /// The token was revoked because the user logged out from all sessions.
+    /// </summary>
+    LogoutAll = 4
 }

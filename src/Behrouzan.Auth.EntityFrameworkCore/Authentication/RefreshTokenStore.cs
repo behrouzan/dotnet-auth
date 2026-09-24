@@ -58,6 +58,25 @@ internal sealed class RefreshTokenStore<TContext, TKey> : IRefreshTokenStore<TKe
                 cancellationToken);
     }
 
+    public async Task RevokeAllAsync(
+        TKey userId,
+        DateTimeOffset revokedAt,
+        RefreshTokenRevocationReason revocationReason,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext
+            .Set<RefreshToken<TKey>>()
+            .Where(token =>
+                token.UserId.Equals(userId) &&
+                token.RevokedAt == null &&
+                token.ExpiresAt > revokedAt)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(token => token.RevokedAt, revokedAt)
+                    .SetProperty(token => token.RevocationReason, revocationReason),
+                cancellationToken);
+    }
+
     public async Task<RefreshTokenRotationResult> SaveRotationAsync(
       RefreshTokenRotationData currentToken,
       RefreshTokenCreateData<TKey> newToken,

@@ -41,6 +41,21 @@ public interface IRefreshTokenStore<TKey>
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Revokes every active, unexpired refresh token owned by a user in one
+    /// persistence operation.
+    /// </summary>
+    /// <param name="userId">The identifier of the token owner.</param>
+    /// <param name="revokedAt">The operation timestamp used for revocation and expiry filtering.</param>
+    /// <param name="revocationReason">The reason recorded on affected tokens.</param>
+    /// <param name="cancellationToken">A token used to cancel the asynchronous operation.</param>
+    /// <returns>A task that represents the bulk persistence operation.</returns>
+    Task RevokeAllAsync(
+        TKey userId,
+        DateTimeOffset revokedAt,
+        RefreshTokenRevocationReason revocationReason,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Atomically persists a refresh token rotation by revoking the current
     /// token and storing its replacement.
     /// </summary>

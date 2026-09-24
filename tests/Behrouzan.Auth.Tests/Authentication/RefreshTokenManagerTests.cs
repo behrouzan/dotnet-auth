@@ -113,6 +113,31 @@ public sealed class RefreshTokenManagerTests
     }
 
     [Fact]
+    public async Task ValidateAndRefreshAsync_WhenTokenWasRevokedByLogoutAll_ReturnRevoked()
+    {
+        var store = new FakeRefreshTokenStore<Guid>
+        {
+            TokenToReturn = new RefreshTokenData<Guid>
+            {
+                TokenId = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                ExpiresAt = Now.AddDays(10),
+                RevokedAt = Now.AddMinutes(-1),
+                RevocationReason = RefreshTokenRevocationReason.LogoutAll
+            }
+        };
+        var manager = CreateManager(store);
+
+        var validation = await manager.ValidateAsync("refresh-token");
+        var renewal = await manager.RefreshAsync("refresh-token");
+
+        Assert.False(validation.IsSuccess);
+        Assert.Equal(RefreshTokenErrorCodes.Revoked, validation.ErrorCode);
+        Assert.False(renewal.IsSuccess);
+        Assert.Equal(RefreshTokenErrorCodes.Revoked, renewal.ErrorCode);
+    }
+
+    [Fact]
     public async Task RefreshAsync_WhenTokenIsExpired_ReturnsExpired()
     {
         var store = new FakeRefreshTokenStore<Guid>
@@ -361,6 +386,24 @@ public sealed class RefreshTokenManagerTests
         Assert.Equal(RefreshTokenErrorCodes.Expired, result.ErrorCode);
     }
 
+    [Fact]
+    public async Task RevokeAllAsync_ShouldUseCurrentTimeAndLogoutAllReason()
+    {
+        var userId = Guid.NewGuid();
+        var store = new FakeRefreshTokenStore<Guid>();
+        var manager = CreateManager(store);
+
+        await manager.RevokeAllAsync(userId);
+        await manager.RevokeAllAsync(userId);
+
+        Assert.Equal(2, store.RevokeAllCallCount);
+        Assert.Equal(userId, store.LastRevokedUserId);
+        Assert.Equal(Now, store.LastRevokeAllAt);
+        Assert.Equal(
+            RefreshTokenRevocationReason.LogoutAll,
+            store.LastRevokeAllReason);
+    }
+
     private static RefreshTokenManager<Guid> CreateManager(
         FakeRefreshTokenStore<Guid> store)
     {
@@ -419,6 +462,14 @@ public sealed class RefreshTokenManagerTests
 
         public RefreshTokenCreateData<TKey>? LastNewToken { get; private set; }
 
+        public int RevokeAllCallCount { get; private set; }
+
+        public TKey? LastRevokedUserId { get; private set; }
+
+        public DateTimeOffset? LastRevokeAllAt { get; private set; }
+
+        public RefreshTokenRevocationReason? LastRevokeAllReason { get; private set; }
+
         public Task InsertAsync(
             RefreshTokenCreateData<TKey> refreshToken,
             CancellationToken cancellationToken = default)
@@ -437,6 +488,19 @@ public sealed class RefreshTokenManagerTests
             RefreshTokenRevocationData refreshToken,
             CancellationToken cancellationToken = default)
         {
+            return Task.CompletedTask;
+        }
+
+        public Task RevokeAllAsync(
+            TKey userId,
+            DateTimeOffset revokedAt,
+            RefreshTokenRevocationReason revocationReason,
+            CancellationToken cancellationToken = default)
+        {
+            RevokeAllCallCount++;
+            LastRevokedUserId = userId;
+            LastRevokeAllAt = revokedAt;
+            LastRevokeAllReason = revocationReason;
             return Task.CompletedTask;
         }
 

@@ -175,6 +175,19 @@ internal sealed class RefreshTokenManager<TKey>
 
     }
 
+    public Task RevokeAllAsync(
+        TKey userId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userId);
+
+        return _store.RevokeAllAsync(
+            userId,
+            _timeProvider.GetUtcNow(),
+            RefreshTokenRevocationReason.LogoutAll,
+            cancellationToken);
+    }
+
     private (string RawToken, RefreshTokenCreateData<TKey> Data) CreateToken(
         TKey userId,
         DateTimeOffset now)
