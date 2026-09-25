@@ -9,9 +9,10 @@ namespace Behrouzan.Auth.AspNetCore.Authentication;
 /// <typeparam name="TUser">The application user type.</typeparam>
 /// <typeparam name="TKey">The type of the persisted user identifier.</typeparam>
 /// <remarks>
-/// Security-stamp changes do not invalidate existing refresh tokens. The token feature must
-/// define user-wide revocation or issuance-time security-stamp binding before release; the
-/// current raw-token revocation API must not be treated as sign-out-everywhere behavior.
+/// Security-stamp changes do not invalidate existing refresh tokens. Applications can use
+/// <see cref="IRefreshTokenManager{TKey}.RevokeAllAsync(TKey, CancellationToken)"/> for
+/// user-wide refresh-token revocation, but must explicitly invoke it or implement
+/// issuance-time security-stamp binding when that behavior is required.
 /// </remarks>
 public sealed class TokenRefreshManager<TUser, TKey>
     where TUser : class
