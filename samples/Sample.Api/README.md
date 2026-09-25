@@ -1,6 +1,11 @@
-# Sample token authentication
+# Sample.Api
 
 The sample exposes the existing cookie flow alongside a separate JWT bearer flow.
+It is the executable reference for the repository's current API; start with the
+[root overview](../../README.md), [getting started](../../docs/getting-started.md),
+[authentication flows](../../docs/authentication-flows.md), and
+[security/data guidance](../../docs/security-and-data.md) for rationale and
+integration details.
 It uses SQLite and `EnsureCreatedAsync`; delete `sample-auth.db` when model changes
 require a fresh development database.
 
@@ -39,5 +44,6 @@ of one session verifies that the refresh token belongs to the authenticated user
 logout-all derives the user ID from the validated bearer subject and current user.
 
 Two-factor completion is intentionally outside this sample. When Identity
-requires 2FA, login or refresh returns HTTP 403 and no tokens. Logout-all revokes
-active refresh tokens but does not immediately expire already-issued access tokens.
+requires 2FA, token login or refresh returns HTTP 403 and no tokens. Logout-all
+revokes active refresh tokens but does not immediately expire already-issued
+access tokens. See the linked guides for flow details and security boundaries.
