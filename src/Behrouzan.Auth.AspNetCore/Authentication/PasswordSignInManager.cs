@@ -15,6 +15,12 @@ public sealed class PasswordSignInManager<TUser>
     private readonly SignInManager<TUser> _signInManager;
     private readonly PasswordSignInOptions _options;
 
+    /// <summary>
+    /// Initializes a password sign-in coordinator.
+    /// </summary>
+    /// <param name="userResolver">The resolver used to find a user by identifier.</param>
+    /// <param name="signInManager">The ASP.NET Core Identity sign-in manager.</param>
+    /// <param name="options">The configured password sign-in options.</param>
     public PasswordSignInManager(
         IUserSignInResolver<TUser> userResolver,
         SignInManager<TUser> signInManager,
