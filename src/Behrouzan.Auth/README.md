@@ -1,5 +1,13 @@
 # Behrouzan.Auth
 
+Prepared for preview release `0.1.0-preview.1` under the MIT license:
+
+```shell
+dotnet add package Behrouzan.Auth --version 0.1.0-preview.1
+```
+
+The command becomes usable from nuget.org after this version is published; this README does not assert that the push has already occurred.
+
 `Behrouzan.Auth` is the framework-neutral core package. It provides permission-definition and role-grant abstractions, refresh-token abstractions and lifecycle management, option types, and dependency-injection registrations.
 
 It does not configure ASP.NET Core authentication, issue or validate JWTs, persist refresh tokens, or supply an Identity/EF Core implementation. The application must register implementations of the storage interfaces it uses, such as `IRefreshTokenStore<TKey>`, `IPermissionGrantStore<TKey>`, and `IRolePermissionGrantStore<TKey>`.
@@ -78,5 +86,3 @@ The repository's detailed guidance is available at:
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/authentication-flows.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/security-and-data.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/refresh-token-storage-upgrade.md
-
-No published package version, installation command, or license is asserted by this README.

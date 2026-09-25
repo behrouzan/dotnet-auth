@@ -1,5 +1,13 @@
 # Behrouzan.Auth.AspNetCore
 
+Prepared for preview release `0.1.0-preview.1` under the MIT license:
+
+```shell
+dotnet add package Behrouzan.Auth.AspNetCore --version 0.1.0-preview.1
+```
+
+The command becomes usable from nuget.org after this version is published; this README does not assert that the push has already occurred. Installation brings `Behrouzan.Auth` as a package dependency, but its Core services and the ASP.NET Core integration still have separate registrations and configuration responsibilities described below.
+
 `Behrouzan.Auth.AspNetCore` integrates the core library with ASP.NET Core and ASP.NET Core Identity. It provides permission-authorization policy support, a user-ID resolver, password sign-in orchestration, access-JWT creation, and token login/refresh orchestration.
 
 It depends on `Behrouzan.Auth`. It does not provide EF Core storage; use `Behrouzan.Auth.EntityFrameworkCore` or register your own core storage interfaces. It also does not configure a bearer handler, validate JWTs, choose a signing algorithm/key, expose HTTP endpoints, or implement antiforgery policy. Those responsibilities remain with the consuming application.
@@ -150,5 +158,3 @@ Detailed repository guidance:
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/getting-started.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/authentication-flows.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/security-and-data.md
-
-No published package version, installation command, or license is asserted by this README.

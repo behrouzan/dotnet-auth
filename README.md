@@ -1,6 +1,6 @@
 # Behrouzan.Auth
 
-`Behrouzan.Auth` is a .NET 8 library set for ASP.NET Core Identity applications. It currently provides permission checks and grants, password sign-in helpers, refresh-token persistence and rotation, and JWT access-token issuance. It is pre-release source code: package publication, stable package versions, and production compatibility guarantees have not been announced.
+`Behrouzan.Auth` is a .NET 8 library set for ASP.NET Core Identity applications. It currently provides permission checks and grants, password sign-in helpers, refresh-token persistence and rotation, and JWT access-token issuance. The three packages are prepared for the first preview release, `0.1.0-preview.1`; preview APIs may change before a stable release.
 
 | Project | Responsibility | Dependencies supplied by this repository |
 | --- | --- | --- |
@@ -8,7 +8,19 @@
 | `Behrouzan.Auth.AspNetCore` | ASP.NET Core authorization integration, Identity-based password sign-in, token login/refresh orchestration, and JWT issuance. | References `Behrouzan.Auth`, `Microsoft.AspNetCore.App`, and `System.IdentityModel.Tokens.Jwt`. The application supplies JWT validation, signing credentials, and endpoints. |
 | `Behrouzan.Auth.EntityFrameworkCore` | EF Core implementations for refresh-token and permission-grant storage, identifier lookup, and model configuration. | References `Behrouzan.Auth`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore`, and `Microsoft.EntityFrameworkCore.Relational`. It requires an Identity EF Core context. |
 
-The repository also contains `samples/Sample.Api`, an executable reference for cookie and JWT bearer authentication. It uses project references, not published NuGet packages; installation commands and package versions are intentionally not documented until a release exists.
+The repository also contains `samples/Sample.Api`, an executable reference for cookie and JWT bearer authentication. It uses project references so that it exercises the source in this repository.
+
+## Preview package installation
+
+The following commands target the packages prepared for `0.1.0-preview.1`. They become usable from nuget.org after that version is pushed; this repository does not claim that publication has already occurred.
+
+```shell
+dotnet add package Behrouzan.Auth --version 0.1.0-preview.1
+dotnet add package Behrouzan.Auth.AspNetCore --version 0.1.0-preview.1
+dotnet add package Behrouzan.Auth.EntityFrameworkCore --version 0.1.0-preview.1
+```
+
+Install only the packages needed by the application. The ASP.NET Core and EF Core packages each bring `Behrouzan.Auth` as a dependency, but their features still require their own service registration and application-owned configuration. All three packages use the MIT license.
 
 ## Current capabilities
 

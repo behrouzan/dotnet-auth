@@ -1,6 +1,18 @@
 # Getting started
 
-This guide targets the source projects in this repository. No published NuGet package or version is assumed. The complete working reference is [Sample.Api](../samples/Sample.Api/README.md).
+This guide covers the packages prepared for the `0.1.0-preview.1` release. The commands below become usable from nuget.org after the preview is pushed; publication is not asserted here. The complete working source reference is [Sample.Api](../samples/Sample.Api/README.md).
+
+## Install the preview packages
+
+Install the packages needed for your application:
+
+```shell
+dotnet add package Behrouzan.Auth --version 0.1.0-preview.1
+dotnet add package Behrouzan.Auth.AspNetCore --version 0.1.0-preview.1
+dotnet add package Behrouzan.Auth.EntityFrameworkCore --version 0.1.0-preview.1
+```
+
+`Behrouzan.Auth.AspNetCore` and `Behrouzan.Auth.EntityFrameworkCore` each install the matching `Behrouzan.Auth` dependency automatically. Installing that dependency does not enable the other package's capabilities: register and configure the Core, ASP.NET Core, and EF Core services required by the application as shown below. The packages are licensed under MIT.
 
 ## Prerequisites
 
