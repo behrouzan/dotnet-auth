@@ -16,6 +16,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Behrouzan.Auth.AspNetCore</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Authors>Behzad Behrouzan</Authors>
+    <Description>ASP.NET Core and Identity integration for Behrouzan.Auth permissions, password sign-in, and token authentication orchestration.</Description>
+    <RepositoryUrl>https://github.com/behrouzan/dotnet-auth</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" Link="LICENSE" />
+  </ItemGroup>
 
 </Project>

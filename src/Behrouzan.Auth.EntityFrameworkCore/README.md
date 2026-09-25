@@ -49,9 +49,29 @@ This registers the EF implementations of `IRefreshTokenStore<TKey>`, `IPermissio
 
 Permission grants are persisted for roles in `BehrouzanRolePermissionGrants`. The EF permission checker derives a user's permissions from that user's Identity role memberships; it does not store direct user permission grants. See the [Permissions guide](https://github.com/behrouzan/dotnet-auth/blob/main/docs/permissions.md) for the complete flow.
 
+## How the stores participate
+
+After core and EF registrations, the core managers use these EF stores through their interfaces; no EF-specific manager calls are needed:
+
+```csharp
+await rolePermissionManager.GrantAsync(
+    roleId,
+    "Products.View",
+    cancellationToken);
+
+var isGranted = await permissionChecker.IsGrantedAsync(
+    userId,
+    "Products.View",
+    cancellationToken);
+```
+
+The first call writes a role grant. The second reads the user's Identity role memberships and the matching role-grant rows. The same registration supplies the hashed refresh-token store used by `IRefreshTokenManager<TKey>`.
+
 ## `ExpiresAt` migration warning
 
 Refresh-token `ExpiresAt` is mapped as UTC .NET ticks so that expiration comparison can be translated during conditional token rotation. Existing databases that used the earlier `DateTimeOffset` representation require a provider-specific, data-converting migration. Do not deploy a type-only `AlterColumn` migration; it can reinterpret existing values incorrectly.
+
+For a new database, generate and apply the normal migration after adding `ConfigureBehrouzanAuth`. Use the data-converting migration process only when upgrading an existing database that contains refresh-token rows using the earlier representation.
 
 For the full conversion and concurrency guidance, see:
 
