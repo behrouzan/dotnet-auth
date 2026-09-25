@@ -133,9 +133,10 @@ public sealed class ServiceCollectionExtensionsTests
             TestRole,
             Guid>();
 
-        Assert.Single(services.Where(
+        Assert.Single(
+            services,
             descriptor => descriptor.ServiceType ==
-                typeof(IUserIdentifierLookup<TestUser>)));
+                typeof(IUserIdentifierLookup<TestUser>));
     }
 
     [Fact]

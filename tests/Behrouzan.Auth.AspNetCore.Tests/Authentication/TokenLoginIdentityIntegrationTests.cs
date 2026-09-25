@@ -108,7 +108,7 @@ public sealed class TokenLoginIdentityIntegrationTests
         Assert.Null(result.RefreshToken);
         Assert.Equal(0, signingProvider.CallCount);
         Assert.Equal(0, refreshTokens.CreateCallCount);
-        Assert.Empty(loginContext.Response.Headers.SetCookie);
+        Assert.Equal(0, loginContext.Response.Headers.SetCookie.Count);
     }
 
     private static ServiceProvider CreateServiceProvider()
