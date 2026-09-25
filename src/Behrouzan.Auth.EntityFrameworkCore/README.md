@@ -1,5 +1,13 @@
 # Behrouzan.Auth.EntityFrameworkCore
 
+Prepared for preview release `0.1.0-preview.1` under the MIT license:
+
+```shell
+dotnet add package Behrouzan.Auth.EntityFrameworkCore --version 0.1.0-preview.1
+```
+
+The command becomes usable from nuget.org after this version is published; this README does not assert that the push has already occurred. Installation brings `Behrouzan.Auth` as a package dependency, but Core service registration and EF Core model, provider, and migration configuration remain separate steps described below.
+
 `Behrouzan.Auth.EntityFrameworkCore` provides Entity Framework Core storage for the core package: refresh-token persistence, role-permission grants, role-grant lookup, phone-number user lookup, and model configuration.
 
 It depends on `Behrouzan.Auth` and requires an Identity EF Core model. It does not configure a database provider, create or apply migrations, configure ASP.NET Core authentication, issue JWTs, or expose endpoints. The consuming application owns those concerns.
@@ -78,5 +86,3 @@ For the full conversion and concurrency guidance, see:
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/refresh-token-storage-upgrade.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/security-and-data.md
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/getting-started.md
-
-No published package version, installation command, or license is asserted by this README.
