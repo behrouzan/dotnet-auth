@@ -71,6 +71,8 @@ Here `issuer`, `audience`, and `signingKey` are application configuration, `Appl
 - Refresh-token logout prevents subsequent refreshes, but an already-issued access JWT remains valid until its configured expiration. Security-stamp changes do not automatically revoke refresh tokens.
 - For user-wide logout, invoke `IRefreshTokenManager<TKey>.RevokeAllAsync` with a trusted authenticated user ID.
 
+For controller authorization with `RequirePermission`, `RequireAnyPermission`, and `RequireAllPermissions`, plus the required role-based permission model, see the [Permissions guide](https://github.com/behrouzan/dotnet-auth/blob/main/docs/permissions.md).
+
 Detailed repository guidance:
 
 - https://github.com/behrouzan/dotnet-auth/blob/main/docs/getting-started.md
