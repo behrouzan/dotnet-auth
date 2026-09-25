@@ -1,0 +1,170 @@
+name: Publish NuGet packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-nuget
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and publish 0.1.0-preview.1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This workflow may only publish from main; received ${GITHUB_REF}." >&2
+            exit 1
+          fi
+
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore with NuGet audit
+        run: >-
+          dotnet restore Behrouzan.Auth.sln
+          -p:NuGetAudit=true
+          -p:WarningsAsErrors=NU1900
+
+      - name: Audit all solution dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet list Behrouzan.Auth.sln package \
+            --vulnerable \
+            --include-transitive \
+            --format json > vulnerability-audit.json
+          cat vulnerability-audit.json
+
+          vulnerability_count="$(jq '[.. | objects | select(.vulnerabilities? != null) | .vulnerabilities[]] | length' vulnerability-audit.json)"
+          if [[ "${vulnerability_count}" -ne 0 ]]; then
+            echo "NuGet audit found ${vulnerability_count} vulnerable dependency entries." >&2
+            exit 1
+          fi
+
+      - name: Build solution
+        run: >-
+          dotnet build Behrouzan.Auth.sln
+          --configuration Release
+          --no-restore
+
+      - name: Run Release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet test tests/Behrouzan.Auth.Tests/Behrouzan.Auth.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=Behrouzan.Auth.Tests.trx" --results-directory TestResults/Behrouzan.Auth.Tests
+          dotnet test tests/Behrouzan.Auth.AspNetCore.Tests/Behrouzan.Auth.AspNetCore.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=Behrouzan.Auth.AspNetCore.Tests.trx" --results-directory TestResults/Behrouzan.Auth.AspNetCore.Tests
+          dotnet test tests/Behrouzan.Auth.EntityFrameworkCore.Tests/Behrouzan.Auth.EntityFrameworkCore.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=Behrouzan.Auth.EntityFrameworkCore.Tests.trx" --results-directory TestResults/Behrouzan.Auth.EntityFrameworkCore.Tests
+          dotnet test tests/Sample.Api.Tests/Sample.Api.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=Sample.Api.Tests.trx" --results-directory TestResults/Sample.Api.Tests
+
+      - name: Verify exact test count
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem TestResults -Recurse -Filter *.trx)
+          if ($files.Count -ne 4) {
+            throw "Expected 4 TRX files, found $($files.Count)."
+          }
+
+          $total = 0
+          $passed = 0
+          $failed = 0
+          foreach ($file in $files) {
+            [xml]$trx = Get-Content $file.FullName -Raw
+            $counters = $trx.TestRun.ResultSummary.Counters
+            $total += [int]$counters.total
+            $passed += [int]$counters.passed
+            $failed += [int]$counters.failed
+          }
+
+          Write-Host "Test summary: total=$total passed=$passed failed=$failed"
+          if ($total -ne 216 -or $passed -ne 216 -or $failed -ne 0) {
+            throw "Expected exactly 216 passing tests and no failures."
+          }
+
+      - name: Pack Behrouzan.Auth
+        run: >-
+          dotnet pack src/Behrouzan.Auth/Behrouzan.Auth.csproj
+          --configuration Release
+          --no-build
+          --no-restore
+          --output artifacts
+
+      - name: Pack Behrouzan.Auth.AspNetCore
+        run: >-
+          dotnet pack src/Behrouzan.Auth.AspNetCore/Behrouzan.Auth.AspNetCore.csproj
+          --configuration Release
+          --no-build
+          --no-restore
+          --output artifacts
+
+      - name: Pack Behrouzan.Auth.EntityFrameworkCore
+        run: >-
+          dotnet pack src/Behrouzan.Auth.EntityFrameworkCore/Behrouzan.Auth.EntityFrameworkCore.csproj
+          --configuration Release
+          --no-build
+          --no-restore
+          --output artifacts
+
+      - name: Verify package names, version, and count
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=(
+            "Behrouzan.Auth.0.1.0-preview.1.nupkg"
+            "Behrouzan.Auth.AspNetCore.0.1.0-preview.1.nupkg"
+            "Behrouzan.Auth.EntityFrameworkCore.0.1.0-preview.1.nupkg"
+          )
+          mapfile -t actual < <(find artifacts -maxdepth 1 -type f -name '*.nupkg' -printf '%f\n' | sort)
+
+          if [[ "${#actual[@]}" -ne 3 ]]; then
+            printf 'Expected exactly 3 packages, found %s:\n' "${#actual[@]}" >&2
+            printf '  %s\n' "${actual[@]}" >&2
+            exit 1
+          fi
+
+          for package in "${expected[@]}"; do
+            if [[ ! -f "artifacts/${package}" ]]; then
+              echo "Missing expected package: ${package}" >&2
+              exit 1
+            fi
+          done
+
+          printf 'Validated package version 0.1.0-preview.1 and exactly 3 files:\n'
+          printf '  %s\n' "${actual[@]}"
+
+      - name: Log in to NuGet with Trusted Publishing
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: behrouzan
+
+      - name: Publish Behrouzan.Auth
+        run: >-
+          dotnet nuget push artifacts/Behrouzan.Auth.0.1.0-preview.1.nupkg
+          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+
+      - name: Publish Behrouzan.Auth.AspNetCore
+        run: >-
+          dotnet nuget push artifacts/Behrouzan.Auth.AspNetCore.0.1.0-preview.1.nupkg
+          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+
+      - name: Publish Behrouzan.Auth.EntityFrameworkCore
+        run: >-
+          dotnet nuget push artifacts/Behrouzan.Auth.EntityFrameworkCore.0.1.0-preview.1.nupkg
+          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
