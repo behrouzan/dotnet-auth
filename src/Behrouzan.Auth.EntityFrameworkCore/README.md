@@ -47,6 +47,8 @@ builder.Services.AddBehrouzanAuthEntityFrameworkCore<
 
 This registers the EF implementations of `IRefreshTokenStore<TKey>`, `IPermissionGrantStore<TKey>`, `IRolePermissionGrantStore<TKey>`, and `IUserIdentifierLookup<TUser>`. Register the core services separately with `AddBehrouzanAuth()` and `AddRefreshTokens(...)`; use the ASP.NET Core package separately if its integration is needed.
 
+Permission grants are persisted for roles in `BehrouzanRolePermissionGrants`. The EF permission checker derives a user's permissions from that user's Identity role memberships; it does not store direct user permission grants. See the [Permissions guide](https://github.com/behrouzan/dotnet-auth/blob/main/docs/permissions.md) for the complete flow.
+
 ## `ExpiresAt` migration warning
 
 Refresh-token `ExpiresAt` is mapped as UTC .NET ticks so that expiration comparison can be translated during conditional token rotation. Existing databases that used the earlier `DateTimeOffset` representation require a provider-specific, data-converting migration. Do not deploy a type-only `AlterColumn` migration; it can reinterpret existing values incorrectly.

@@ -29,6 +29,8 @@ builder.Services.AddScoped<IRolePermissionGrantStore<Guid>, ApplicationRolePermi
 
 After registration, an application can inject `IRefreshTokenManager<Guid>` and use `CreateAsync`, `ValidateAsync`, `RefreshAsync`, `RevokeAsync`, and `RevokeAllAsync`. Treat a raw refresh token as a credential: return it only to its owner and never persist it in plaintext.
 
+For permission definitions, role-grant management, and user permission checks, see the [Permissions guide](https://github.com/behrouzan/dotnet-auth/blob/main/docs/permissions.md). Permissions are granted to roles; direct user permission grants are not provided.
+
 ## Important limits
 
 - Revoking a refresh token does not immediately invalidate an already-issued access JWT.

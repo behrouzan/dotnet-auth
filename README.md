@@ -24,5 +24,6 @@ The repository also contains `samples/Sample.Api`, an executable reference for c
 - [Getting started](docs/getting-started.md)
 - [Authentication flows](docs/authentication-flows.md)
 - [Security and data considerations](docs/security-and-data.md)
+- [Permissions](docs/permissions.md)
 - [Refresh-token `ExpiresAt` storage upgrade](docs/refresh-token-storage-upgrade.md)
 - [Sample.Api](samples/Sample.Api/README.md)
